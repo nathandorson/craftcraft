@@ -1,1 +1,2 @@
-console.log("hi it works");
+var WebSocket = require("ws");
+console.log(WebSocket);
