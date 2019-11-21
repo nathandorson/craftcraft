@@ -1,2 +1,7 @@
 var WebSocket = require("ws");
-console.log(WebSocket);
+
+var gameUpdateInterval;
+
+gameUpdateInterval = setInterval(() => {
+    gameWorld.update();
+}, 1000 / 60);
