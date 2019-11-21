@@ -19,13 +19,35 @@ function updateEnt(id, type, action){
 //input int id, arr action
 //update ent list based on action
 function updateWorker(id, action){
-    //update ent list with action
+    if(action[0] == "build"){
+        //build based of action[1]
+    }
+    if(action[0] == "attack"){
+        //attack based on action[1]
+    }
+    if(action[0] == "harvest"){
+        //harvest based on action[1]
+    }
+    if(action[0] == "build"){
+        //build based on action[1]
+    }
 }
 
 //input int id, arr action
 //update ent list based on action
 function updateFighter(id, action){
-    //update ent list with action
+    if(action[0] == "build"){
+        //build based of action[1]
+    }
+    if(action[0] == "attack"){
+        //attack based on action[1]
+    }
+    if(action[0] == "harvest"){
+        //harvest based on action[1]
+    }
+    if(action[0] == "build"){
+        //build based on action[1]
+    }
 }
 
 //input int id, arr action
