@@ -16,7 +16,21 @@ function updateEnt(id, type, action){
 //input int id, arr action
 //update ent list based on action
 function updateUnit(id, action){
-    entList[id].setAction(action[0], action[1])
+    
+    let ent = getEntityById(id)
+
+    if(action[0] == "build"){
+        ent.build(action[1])
+    }
+    if(action[0] == "attack"){
+        ent.attack(action[1])
+    }
+    if(action[0] == "harvest"){
+        ent.harvest(action[1])
+    }
+    if(action[0] == "move"){
+        ent.move(action[1])
+    }
 }
 
 //input int id, arr action
