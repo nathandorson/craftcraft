@@ -73,6 +73,7 @@ function findEntityByID(id)
         }
     }
     return null;
+}
 
 //input int id, str type, arr action
 //call appropriate update function based on type
