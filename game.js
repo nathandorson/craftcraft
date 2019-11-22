@@ -14,6 +14,7 @@ class Entity
             {
                 this.x = x;
                 this.y = y;
+                this.z = z;
             }
             this.harvest = function()
             {
@@ -31,10 +32,11 @@ class Entity
         }
         if(type=="fighter")
         {
-            this.move = function(x,y)
+            this.move = function(x,y,z)
             {
                 this.x = x;
                 this.y = y;
+                this.z = z
             }
             this.attack = function()
             {
