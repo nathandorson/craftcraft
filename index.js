@@ -1,7 +1,7 @@
 var server = require("./server.js");
 
 var gameUpdateInterval;
-import gameBoard from game.js
+import gameBoard from "game.js";
 
 function main()
 {
