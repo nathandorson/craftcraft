@@ -1,5 +1,16 @@
 var entityList = [];
 
+var map = [];
+for(let r = 0; r < 4; r++)
+{
+    row = [];
+    for(let c = 0; c < 4; c++)
+    {
+        row.push({"type":"ground","height":r+c})
+    }
+    map.push(row);
+}
+
 class Entity
 {
     constructor(type,x,y,z)
