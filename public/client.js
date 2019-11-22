@@ -1,5 +1,5 @@
 var connected = false;
-var ws = new WebSocket("ws://127.0.0.1:5524");
+var ws = new WebSocket("ws://");
 ws.onopen = function() {
     console.log("connected");
     ws.send(JSON.stringify({
@@ -26,5 +26,5 @@ function setup()
 }
 function draw()
 {
-    
+
 }
