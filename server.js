@@ -9,7 +9,39 @@ var receivedActions = {
     doAction: function(cl, data) {
         if(cl.player != null)
         {
-
+            let actionType = data["action"];
+            let id = data["unit"];
+            if(actionType == "move")
+            {
+                if(data.hasOwnProperty("target"))
+                {
+                    let target = data["target"];
+                    cl.player.move(id, target);
+                }
+                else
+                {
+                    let tx = data["x"];
+                    let ty = data["y"];
+                    cl.player.move(id, tx, ty);
+                }
+            }
+            else if(actionType == "attack")
+            {
+                let target = data["target"];
+                cl.player.attack(id, target);
+            }
+            else if(actionType == "harvest")
+            {
+                let target = data["target"];
+                cl.player.harvest(id, target);
+            }
+            else if(actionType == "build")
+            {
+                let buildingType = data["building"];
+                let tx = data["x"];
+                let ty = data["y"];
+                cl.player.build(id, buildingType, tx, ty);
+            }
         }
     },
     join: function(cl, data) {
@@ -23,6 +55,10 @@ class ConnectedClient
         this.socket = socket;
         this.targetPlayer = -1;
         this.player = null;
+    }
+    update()
+    {
+
     }
 }
 module.exports = {
@@ -46,6 +82,9 @@ module.exports = {
     },
     update: function()
     {
-        //
+        for(let i = 0; i < clientList.length; i++)
+        {
+            clientList[i].update();
+        }
     }
 };
