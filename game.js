@@ -167,5 +167,5 @@ class GameBoard
 
 }
 module.exports = {
-    GameBoard: GameBoard;
+    GameBoard: GameBoard,
 }
