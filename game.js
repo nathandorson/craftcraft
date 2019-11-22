@@ -1,3 +1,5 @@
+import { Module } from "module";
+
 var entityList = [];
 
 var mapSideLength = 512;
@@ -101,7 +103,7 @@ function findEntityByID(id)
     return null;
 }
 
-class gameBoard 
+class GameBoard
 {
 
     constructor(){
@@ -163,4 +165,7 @@ class gameBoard
     }
 
 
+}
+module.exports = {
+    GameBoard: GameBoard;
 }
