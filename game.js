@@ -3,10 +3,10 @@ var entityList = [];
 var mapSideLength = 512;
 var tileSideLength = 64;
 var map = [];
-for(let r = 0; r < 4; r++)
+for(let r = 0; r < mapSideLength; r+=tileSideLength)
 {
     row = [];
-    for(let c = 0; c < 4; c++)
+    for(let c = 0; c < mapSideLength; c+=tileSideLength)
     {
         row.push({"type":"ground","height":r+c})
     }
@@ -61,9 +61,16 @@ class Entity
         if(type=="house")
         {
             this.isBigHouse = false;
-            this.attack = function()
+            this.attack = function(type)
             {
-                //attack nearby enemy units
+                if(type=="fighter")
+                {
+
+                }
+                else if(type=="worker")
+                {
+
+                }
             }
             this.spawnUnit = function()
             {
@@ -73,6 +80,10 @@ class Entity
         if(type=="cave")
         {
             this.resourcesLeft = 1000000;
+            this.changeResources = function(amt)
+            {
+                this.resourcesLeft = amt;
+            }
         }
     }
 }
@@ -131,7 +142,7 @@ function updateHouse(id, action){
     let ent = getEntityById(id);
 
     if(action[0] == "makeWorker"){
-        ent.makeWorker([action[1]])
+        ent.spawnUnit([action[1]])
     }
 }
 
