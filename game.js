@@ -46,6 +46,14 @@ class Entity
         if(type=="house")
         {
             this.isBigHouse = false;
+            this.attack = function()
+            {
+                //attack nearby enemy units
+            }
+            this.spawnUnit = function()
+            {
+
+            }
         }
         if(type=="cave")
         {
