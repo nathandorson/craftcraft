@@ -1,5 +1,7 @@
 var entityList = [];
 
+var mapSideLength = 512;
+var tileSideLength = 64;
 var map = [];
 for(let r = 0; r < 4; r++)
 {
