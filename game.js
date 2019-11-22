@@ -1,5 +1,18 @@
 var entityList = [];
 
+var mapSideLength = 512;
+var tileSideLength = 64;
+var map = [];
+for(let r = 0; r < mapSideLength; r+=tileSideLength)
+{
+    row = [];
+    for(let c = 0; c < mapSideLength; c+=tileSideLength)
+    {
+        row.push({"type":"ground","height":r+c})
+    }
+    map.push(row);
+}
+
 class Entity
 {
     constructor(type,x,y,z)
@@ -14,6 +27,7 @@ class Entity
             {
                 this.x = x;
                 this.y = y;
+                this.z = z;
             }
             this.harvest = function()
             {
@@ -31,10 +45,11 @@ class Entity
         }
         if(type=="fighter")
         {
-            this.move = function(x,y)
+            this.move = function(x,y,z)
             {
                 this.x = x;
                 this.y = y;
+                this.z = z
             }
             this.attack = function()
             {
@@ -46,9 +61,16 @@ class Entity
         if(type=="house")
         {
             this.isBigHouse = false;
-            this.attack = function()
+            this.attack = function(type)
             {
-                //attack nearby enemy units
+                if(type=="fighter")
+                {
+
+                }
+                else if(type=="worker")
+                {
+
+                }
             }
             this.spawnUnit = function()
             {
@@ -58,6 +80,10 @@ class Entity
         if(type=="cave")
         {
             this.resourcesLeft = 1000000;
+            this.changeResources = function(amt)
+            {
+                this.resourcesLeft = amt;
+            }
         }
     }
 }
