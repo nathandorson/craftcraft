@@ -114,11 +114,21 @@ function updateUnit(id, action){
 //input int id, arr action
 //update ent list based on action
 function updateHouse(id, action){
-    //update ent list with action
+
+    let ent = getEntityById(id);
+
+    if(action[0] == "makeWorker"){
+        ent.makeWorker([action[1]])
+    }
 }
 
 //input int id, arr action
 //update ent list based on action
 function updateCave(id, action){
-    //update ent list with action
+
+    ent = getEntityById(id) 
+
+    if(action[0] == "changeResources"){
+        ent.changeResources(action[1])
+    }
 }
