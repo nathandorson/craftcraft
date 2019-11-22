@@ -14,9 +14,17 @@ ws.onclose = function() {
 }
 ws.onmessage = function(ev) {
     let data = JSON.parse(ev.data);
-    if (data.type == "")
+    if (data.type == "createUnit")
     {
-        //
+        id = data.id;
+    }
+    if(data.type == "updateUnit")
+    {
+        id = data.id;
+    }
+    if(data.type == "destroyUnit")
+    {
+        id = data.id;
     }
 }
 function setup()
