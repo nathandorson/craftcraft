@@ -87,6 +87,7 @@ class Entity
             this.building = false;
             this.buildingTargetLocation = null;
             this.buildingTargetID = null;
+            this.health = 3;
         }
         if(type=="fighter")
         {
@@ -107,10 +108,17 @@ class Entity
                     let target = getEntityById(this.attackTargetID);
                     let diffX = this.x - target.x;
                     let diffY = this.y - target.y;
-                    let theta = Math.atan(diffY/diffX);
-                    let deltaX = 3 * Math.cos(theta);
-                    let deltaY = 3 * Math.sin(theta);
-                    this.move(this.x + deltaX, this.y + deltaY, this.z)
+                    if(diffX + diffY < 2)
+                    {
+                        let theta = Math.atan(diffY/diffX);
+                        let deltaX = 3 * Math.cos(theta);
+                        let deltaY = 3 * Math.sin(theta);
+                        this.move(this.x + deltaX, this.y + deltaY, this.z)
+                    } else 
+                    {
+                        target.health += -1;
+                    }
+                    
                 }
                 if(state == "move")
                 {
@@ -123,6 +131,7 @@ class Entity
                 }
             }
             this.attackTargetID = null;
+            this.health = 5;
         }
         if(type=="house")
         {
