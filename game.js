@@ -51,11 +51,16 @@ class Entity
             {
                 this.x = x;
                 this.y = y;
-                this.z = z
+                this.z = z;
             }
-            this.attack = function()
+            this.attack = function(targetID)
             {
-                //
+                this.attackTargetID == targetID;
+                let attackTarget = getEntityById(attackTargetID);
+                let deltaX = this.x - attackTarget.x;
+                let deltaY = this.y - attackTarget.y;
+                this.movementAngle = math.atan(deltaY/deltaX);
+                this.attacking == true;
             }
             this.attacking = false;
             this.attackTargetID = null;
