@@ -17,9 +17,10 @@ for(let r = 0; r < mapSideLength; r+=tileSideLength)
 
 class Entity
 {
-    constructor(type,x,y,z)
+    constructor(type,id,x,y,z)
     {
         this.type = type;
+        this.id = id;
         this.x = x;
         this.y = y;
         this.z = z;
