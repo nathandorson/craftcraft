@@ -59,27 +59,29 @@ class ConnectedClient
         this.createUnit = (unit) => {
             //send create event to client
             this.socket.send(JSON.stringify({
-                type: "createUnit",
+                type: "createEntity",
                 id: unit.id,
                 x: unit.x,
                 y: unit.y,
+                z: unit.z,
                 unitType: unit.type
             }));
         };
         this.updateUnit = (unit) => {
             //send updated information to client
             this.socket.send(JSON.stringify({
-                type: "updateUnit",
+                type: "updateEntity",
                 id: unit.id,
                 x: unit.x,
                 y: unit.y,
+                z: unit.z,
                 state: unit.state
             }));
         };
         this.destroyUnit = (unit) => {
             //tell client unit is no more
             this.socket.send(JSON.stringify({
-                type: "destroyUnit",
+                type: "destroyEntity",
                 id: unit.id
             }));
         };

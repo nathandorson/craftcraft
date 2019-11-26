@@ -1,6 +1,8 @@
 import { Module } from "module";
+import { EventEmitter } from "events";
 
 var entityList = [];
+var players = [];
 
 var mapSideLength = 512;
 var tileSideLength = 64;
@@ -14,7 +16,45 @@ for(let r = 0; r < mapSideLength; r+=tileSideLength)
     }
     map.push(row);
 }
-
+class Player
+{
+    constructor()
+    {
+        this.emitter = new EventEmitter();
+        this.ownedEntities = [];
+    }
+    move(id, x, y)
+    {
+        let entity = findEntityByID(id);
+        if(entity != null)
+        {
+            //
+        }
+    }
+    harvest(id, targetId)
+    {
+        //
+    }
+    attack(id, targetId)
+    {
+        //
+    }
+    build(id, buildingType, x, y)
+    {
+        //
+    }
+}
+function requestPlayer()
+{
+    
+}
+const EntityStates = {
+    IDLE: 0,
+    MOVING: 1,
+    ATTACKING: 2,
+    HARVESTING: 3,
+    BUILDING: 4
+};
 class Entity
 {
     constructor(type,x,y,z)
@@ -23,6 +63,7 @@ class Entity
         this.x = x;
         this.y = y;
         this.z = z;
+        this.state = EntityStates.IDLE;
         if(type=="worker")
         {
             this.move = function(x,y)
@@ -87,6 +128,10 @@ class Entity
                 this.resourcesLeft = amt;
             }
         }
+    }
+    update()
+    {
+
     }
 }
 
@@ -168,4 +213,5 @@ class GameBoard
 }
 module.exports = {
     GameBoard: GameBoard,
+    requestPlayer: requestPlayer
 }
