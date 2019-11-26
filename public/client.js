@@ -75,6 +75,7 @@ class Entity
 }
 
 var entityList = [];
+var selectedEntities = [];
 var mapSideLength = 512;
 var tileSideLength = 64;
 var map = [];
@@ -95,12 +96,33 @@ function findEntityByID(id,remove=false)
     return null;
 }
 
+function drawWorld()
+{
+    for(let r = 0; r < map.length; r++)
+    {
+        for(let c = 0; c < map[r].length; c++)
+        {
+            tile = map[r][c];
+            type = tile.type;
+            height = tile.height;
+            fill(0,255,0);
+            rect(r*tileSideLength,y*tileSideLength,tileSideLength,tileSideLength);
+        }
+    }
+    for(let i = 0; i < entityList.length; i++)
+    {
+        ent = entityList[i];
+        fill(255);
+        ellipse(ent.x,ent.y,10,10);
+    }
+}
+
 var connected = false;
 var ws = new WebSocket("ws://127.0.0.1:5524");
 ws.onopen = function() {
     console.log("connected");
     ws.send(JSON.stringify({
-        type: "register"
+        type: "join"
     }));
     connected = true;
     client.setSocket(ws);
@@ -132,5 +154,61 @@ function setup()
 }
 function draw()
 {
+    drawWorld();
+}
 
+var selectionXi = 0;
+var selectionXf = 0;
+var selectionYi = 0;
+var selectionYf = 0;
+function selectEntities(xi,yi,xf,yf)
+{
+    selectedEntities = [];
+    for(let i = 0; i < entityList.length; i++)
+    {
+        let ent = entityList[i];
+        if(ent.x > xi && ent.x < xf && ent.y > yi && ent.y < yf)
+        {
+            selectedEntities.push(entityList[i]);
+        }
+    }
+}
+
+function sendMove(x,y)
+{
+    for(let i = 0; i < selectedEntities.length; i++)
+    {
+        let ent = selectedEntities[i];
+        ws.send(JSON.stringify({
+            type: "doAction",
+            id: ent.id,
+            x: x,
+            y: y
+        }));
+    }
+}
+
+function mousePressed()
+{
+    if(mouseButton == LEFT)
+    {
+        selectionXi = mouseX;
+        selectionYi = mouseY;
+    }
+}
+function mouseReleased()
+{
+    if(mouseButton == LEFT)
+    {
+        selectionXf = mouseX;
+        selectionYf = mouseY;
+        selectEntities(selectionXi,selectionYi,selectionXf,selectionYf);
+    }
+}
+function mouseClicked()
+{
+    if(mouseButton == RIGHT)
+    {
+        sendMove(mouseX,mouseY);
+    }
 }
