@@ -45,7 +45,7 @@ var receivedActions = {
         }
     },
     join: function(cl, data) {
-        cl.player = game.requestPlayer();
+        cl.setPlayer(game.requestPlayer());
     }
 };
 class ConnectedClient
@@ -55,10 +55,41 @@ class ConnectedClient
         this.socket = socket;
         this.targetPlayer = -1;
         this.player = null;
+        this.queuedUpdates = [];
+        this.createUnit = (unit) => {
+            //send create event to client
+            this.socket.send(JSON.stringify({
+                type: "createUnit",
+                id: unit.id,
+                x: unit.x,
+                y: unit.y,
+                unitType: unit.type
+            }));
+        };
+        this.updateUnit = (unit) => {
+            //send updated information to client
+            this.socket.send(JSON.stringify({
+                type: "updateUnit",
+                id: unit.id,
+                x: unit.x,
+                y: unit.y,
+                state: unit.state
+            }));
+        };
+        this.destroyUnit = (unit) => {
+            //tell client unit is no more
+            this.socket.send(JSON.stringify({
+                type: "destroyUnit",
+                id: unit.id
+            }));
+        };
     }
-    update()
+    setPlayer(player)
     {
-
+        this.player = player;
+        player.emitter.on("create", this.createUnit);
+        player.emitter.on("update", this.updateUnit);
+        player.emitter.on("destroy", this.destroyUnit);
     }
 }
 module.exports = {
@@ -76,7 +107,7 @@ module.exports = {
             });
             socket.on("message", (data) => {
                 let dataObj = JSON.parse(data);
-                receivedActions[dataObj.type](client, )
+                receivedActions[dataObj.type](client, dataObj);
             });
         });
     },
