@@ -1,6 +1,9 @@
 import { Module } from "module";
+import { EventEmitter } from "events";
+import { threadId } from "worker_threads";
 
 var entityList = [];
+var players = [];
 
 var mapSideLength = 512;
 var tileSideLength = 64;
@@ -14,7 +17,45 @@ for(let r = 0; r < mapSideLength; r+=tileSideLength)
     }
     map.push(row);
 }
-
+class Player
+{
+    constructor()
+    {
+        this.emitter = new EventEmitter();
+        this.ownedEntities = [];
+    }
+    move(id, x, y)
+    {
+        let entity = findEntityByID(id);
+        if(entity != null)
+        {
+            //
+        }
+    }
+    harvest(id, targetId)
+    {
+        //
+    }
+    attack(id, targetId)
+    {
+        //
+    }
+    build(id, buildingType, x, y)
+    {
+        //
+    }
+}
+function requestPlayer()
+{
+    
+}
+const EntityStates = {
+    IDLE: 0,
+    MOVING: 1,
+    ATTACKING: 2,
+    HARVESTING: 3,
+    BUILDING: 4
+};
 class Entity
 {
     constructor(type,id,x,y,z)
@@ -24,6 +65,7 @@ class Entity
         this.x = x;
         this.y = y;
         this.z = z;
+        this.state = EntityStates.IDLE;
         if(type=="worker")
         {
             this.move = function(x,y)
@@ -50,15 +92,36 @@ class Entity
         {
             this.move = function(x,y,z)
             {
-                this.x = x;
-                this.y = y;
-                this.z = z
+                this.state = "move"
+                this.targetCoords = [x, y, z]
             }
-            this.attack = function()
+            this.attack = function(targetID)
             {
-                //
+                this.state = "attack";
+                this.attackTargetID = targetID;
             }
-            this.attacking = false;
+            this.act = function() //run every tick
+            {
+                if(state == "attack")
+                {
+                    let target = getEntityById(this.attackTargetID);
+                    let diffX = this.x - target.x;
+                    let diffY = this.y - target.y;
+                    let theta = Math.atan(diffY/diffX);
+                    let deltaX = 3 * Math.cos(theta);
+                    let deltaY = 3 * Math.sin(theta);
+                    this.move(this.x + deltaX, this.y + deltaY, this.z)
+                }
+                if(state == "move")
+                {
+                    let diffX = this.x - targetCoords[0];
+                    let diffY = this.y - targetCoords[1];
+                    let theta = Math.atan(diffY/diffX);
+                    let deltaX = 3 * Math.cos(theta);
+                    let deltaY = 3 * Math.sin(theta);
+                    this.move(this.x + deltaX, this.y + deltaY, this.z)
+                }
+            }
             this.attackTargetID = null;
         }
         if(type=="house")
@@ -88,6 +151,10 @@ class Entity
                 this.resourcesLeft = amt;
             }
         }
+    }
+    update()
+    {
+
     }
 }
 
@@ -169,4 +236,5 @@ class GameBoard
 }
 module.exports = {
     GameBoard: GameBoard,
+    requestPlayer: requestPlayer
 }
