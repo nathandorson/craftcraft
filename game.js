@@ -1,5 +1,6 @@
 import { Module } from "module";
 import { EventEmitter } from "events";
+import { threadId } from "worker_threads";
 
 var entityList = [];
 var players = [];
@@ -91,20 +92,36 @@ class Entity
         {
             this.move = function(x,y,z)
             {
-                this.x = x;
-                this.y = y;
-                this.z = z;
+                this.state = "move"
+                this.targetCoords = [x, y, z]
             }
             this.attack = function(targetID)
             {
-                this.attackTargetID == targetID;
-                let attackTarget = getEntityById(attackTargetID);
-                let deltaX = this.x - attackTarget.x;
-                let deltaY = this.y - attackTarget.y;
-                this.movementAngle = math.atan(deltaY/deltaX);
-                this.attacking == true;
+                this.state = "attack";
+                this.attackTargetID = targetID;
             }
-            this.attacking = false;
+            this.act = function() //run every tick
+            {
+                if(state == "attack")
+                {
+                    let target = getEntityById(this.attackTargetID);
+                    let diffX = this.x - target.x;
+                    let diffY = this.y - target.y;
+                    let theta = Math.atan(diffY/diffX);
+                    let deltaX = 3 * Math.cos(theta);
+                    let deltaY = 3 * Math.sin(theta);
+                    this.move(this.x + deltaX, this.y + deltaY, this.z)
+                }
+                if(state == "move")
+                {
+                    let diffX = this.x - targetCoords[0];
+                    let diffY = this.y - targetCoords[1];
+                    let theta = Math.atan(diffY/diffX);
+                    let deltaX = 3 * Math.cos(theta);
+                    let deltaY = 3 * Math.sin(theta);
+                    this.move(this.x + deltaX, this.y + deltaY, this.z)
+                }
+            }
             this.attackTargetID = null;
         }
         if(type=="house")
