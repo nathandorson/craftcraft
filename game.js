@@ -6,6 +6,12 @@ var EventEmitter = require("events").EventEmitter;
 var entityList = [];
 var players = [];
 var maxPlayers = 2;
+var highestId = 0;
+var emitter = new EventEmitter();
+function requestId()
+{
+    return highestId++;
+}
 
 var mapSideLength = 512;
 var tileSideLength = 64;
@@ -39,14 +45,19 @@ class Player
         }
         return null;
     }
-    addEntity(id)
+    addEntity(entity)
     {
-        let entity = findEntityByID(id);
+        //let entity = findEntityByID(id);
         if(entity != null)
         {
             this.ownedEntities.push(entity);
         }
-
+        entityList.push(entity);
+        this.emitter.emit("create", entity);
+        var _this = this;
+        entity.emitter.on("destroy", () => {
+            _this.emitter.emit("destroy", entity);
+        });
     }
     move(id, x, y)
     {
@@ -115,7 +126,7 @@ class Entity
         this.z = z;
         this.game = game;
         this._update = () => { this.update(); };
-        this.game.on("update", this._update);
+        this.game.emitter.on("update", this._update);
         this.state = EntityStates.IDLE;
         if(type=="worker")
         {
@@ -310,6 +321,11 @@ module.exports = {
     requestPlayer: requestPlayer,
     game: {
         update: update,
-        requestPlayer: requestPlayer
+        requestPlayer: requestPlayer,
+        getMap: function() { return map; },
+        getSideLength: function() { return tileSideLength; },
+        requestId: requestId,
+        Entity: Entity,
+        emitter: emitter
     }
 };
