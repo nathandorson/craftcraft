@@ -78,7 +78,7 @@ var entityList = [];
 var selectedEntities = [];
 var mapSideLength = 512;
 var tileSideLength = 64;
-var map = [];
+var worldMap = [];
 function findEntityByID(id,remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
@@ -98,15 +98,15 @@ function findEntityByID(id,remove=false)
 
 function drawWorld()
 {
-    for(let r = 0; r < map.length; r++)
+    for(let r = 0; r < worldMap.length; r++)
     {
-        for(let c = 0; c < map[r].length; c++)
+        for(let c = 0; c < worldMap[r].length; c++)
         {
-            tile = map[r][c];
+            tile = worldMap[r][c];
             type = tile.type;
             height = tile.height;
-            fill(0,255,0);
-            rect(r*tileSideLength,y*tileSideLength,tileSideLength,tileSideLength);
+            fill(0,10*height/tileSideLength,0);
+            rect(r*tileSideLength,c*tileSideLength,tileSideLength,tileSideLength);
         }
     }
     for(let i = 0; i < entityList.length; i++)
@@ -118,14 +118,13 @@ function drawWorld()
 }
 
 var connected = false;
-var ws = new WebSocket("ws://127.0.0.1:5524");
+var ws = new WebSocket("ws://10.229.222.61:5524");
 ws.onopen = function() {
     console.log("connected");
     ws.send(JSON.stringify({
         type: "join"
     }));
     connected = true;
-    client.setSocket(ws);
 };
 ws.onclose = function() {
     console.log("disconnected");
@@ -133,6 +132,11 @@ ws.onclose = function() {
 }
 ws.onmessage = function(ev) {
     let data = JSON.parse(ev.data);
+    console.log(data);
+    if (data.type == "sendMap")
+    {
+        worldMap = data.worldMap;
+    }
     if (data.type == "createEntity")
     {
         entityList.push(new Entity(data.entityType, data.id, data.x, data.y, data.z))
@@ -188,6 +192,16 @@ function sendMove(x,y)
     }
 }
 
+function createEntity(x,y)
+{
+    ws.send(JSON.stringify({
+        type: "createUnit",
+        entityType: "fighter",
+        x: x,
+        y: y
+    }))
+}
+
 function mousePressed()
 {
     if(mouseButton == LEFT)
@@ -214,5 +228,12 @@ function mouseClicked()
 }
 function keyPressed()
 {
-
+    if(key=='a'||key=='A')
+    {
+        //something something attack with all selected units that are valid to do so
+    }
+    if(key=='c')
+    {
+        createEntity(mouseX, mouseY);
+    }
 }
