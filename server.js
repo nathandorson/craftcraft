@@ -20,7 +20,7 @@ var receivedActions = {
                 }
                 else
                 {
-                    let tx = data["x"];
+                    let tx = parsedata["x"];
                     let ty = data["y"];
                     cl.player.move(id, tx, ty);
                 }
@@ -45,7 +45,7 @@ var receivedActions = {
         }
     },
     join: function(cl, data) {
-        cl.setPlayer(game.requestPlayer());
+        cl.setPlayer(game.requestPlayer(game));
     }
 };
 class ConnectedClient

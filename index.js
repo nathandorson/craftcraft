@@ -1,14 +1,15 @@
 var server = require("./server.js");
 
 var gameUpdateInterval;
-import gameBoard from "game.js";
+import {gameBoard, game} from "game.js";
 
 function main()
 {
     gameWorld = gameBoard();
     server.run(game);
     gameUpdateInterval = setInterval(() => {
-        updateGameWorld(gameWorld, inputs, players);
+        game.update(gameWorld);
+        //updateGameWorld(gameWorld, inputs, players);
         server.update();
     }, 1000 / 60);
 }
