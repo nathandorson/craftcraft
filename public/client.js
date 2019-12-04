@@ -212,3 +212,7 @@ function mouseClicked()
         sendMove(mouseX,mouseY);
     }
 }
+function keyPressed()
+{
+
+}
