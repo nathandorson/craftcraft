@@ -214,5 +214,8 @@ function mouseClicked()
 }
 function keyPressed()
 {
-
+    if(key=='a'||key=='A')
+    {
+        //something something attack with all selected units that are valid to do so
+    }
 }
