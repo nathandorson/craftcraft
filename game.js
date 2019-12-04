@@ -1,6 +1,7 @@
-import { Module } from "module";
-import { EventEmitter } from "events";
-import { threadId } from "worker_threads";
+//import { Module } from "module";
+//import { EventEmitter } from "events";
+//import { threadId } from "worker_threads";
+var EventEmitter = require("events").EventEmitter;
 
 var entityList = [];
 var players = [];
@@ -307,5 +308,8 @@ var _this = this;
 module.exports = {
     GameBoard: GameBoard,
     requestPlayer: requestPlayer,
-    game: _this
+    game: {
+        update: update,
+        requestPlayer: requestPlayer
+    }
 };
