@@ -46,6 +46,13 @@ var receivedActions = {
     },
     join: function(cl, data) {
         cl.setPlayer(game.requestPlayer(game));
+        if(game.getEntityList().length > 0)
+        {
+            for(let i = 0; i < game.getEntityList().length; i++)
+            {
+                ConnectedClient.createUnit(game.getEntityList()[i]);
+            }
+        }
     },
     createUnit: function(cl, data) {
         let x = data.x;

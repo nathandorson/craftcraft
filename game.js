@@ -324,6 +324,7 @@ module.exports = {
         requestPlayer: requestPlayer,
         getMap: function() { return map; },
         getSideLength: function() { return tileSideLength; },
+        getEntityList: function() { return entityList; },
         requestId: requestId,
         Entity: Entity,
         emitter: emitter
