@@ -159,19 +159,38 @@ function setup()
 function draw()
 {
     drawWorld();
+    fill(0,0,255,100)
+    if(mouseIsPressed)
+    {
+        rect(selectionXi,selectionYi,mouseX-selectionXi,mouseY-selectionYi);
+    }
+    else
+    {   
+        rect(selectionXi,selectionYi,selectionXf-selectionXi,selectionYf-selectionYi);
+    }
+    if(entityPrimed)
+    {
+        fill(255);
+        text("Press 1 for a house, 2 for a fighter, 3 for a worker.",20,20);
+    }
 }
 
 var selectionXi = 0;
 var selectionXf = 0;
 var selectionYi = 0;
 var selectionYf = 0;
+
 function selectEntities(xi,yi,xf,yf)
 {
     selectedEntities = [];
+    let lowX = Math.min(xi,xf);
+    let highX = Math.max(xi,xf);
+    let lowY = Math.min(yi,yf);
+    let highY = Math.max(yi,yf);
     for(let i = 0; i < entityList.length; i++)
     {
         let ent = entityList[i];
-        if(ent.x > xi && ent.x < xf && ent.y > yi && ent.y < yf)
+        if(ent.x > lowX && ent.x < highX && ent.y > lowY && ent.y < highY)
         {
             selectedEntities.push(entityList[i]);
         }
@@ -185,6 +204,7 @@ function sendMove(x,y)
         let ent = selectedEntities[i];
         ws.send(JSON.stringify({
             type: "doAction",
+            actionType: "move",
             id: ent.id,
             x: x,
             y: y
@@ -192,14 +212,26 @@ function sendMove(x,y)
     }
 }
 
-function createEntity(x,y)
+var entityPrimed = false;
+var entCreationX = 0;
+var entCreationY = 0;
+
+function prepareEntity(x,y)
+{
+    entCreationX = x;
+    entCreationY = y;
+    entityPrimed = true;
+}
+
+function createEntity(x,y,entType)
 {
     ws.send(JSON.stringify({
         type: "createUnit",
-        entityType: "fighter",
+        entityType: entType,
         x: x,
         y: y
     }))
+    entityPrimed = false;
 }
 
 function mousePressed()
@@ -228,12 +260,31 @@ function mouseClicked()
 }
 function keyPressed()
 {
+    if(entityPrimed)
+    {
+        if(key=='1')
+        {
+            createEntity(entCreationX,entCreationY,"house");
+        }
+        if(key=='2')
+        {
+            createEntity(entCreationX,entCreationY,"fighter");
+        }
+        if(key=='3')
+        {
+            createEntity(entCreationX,entCreationY,"worker");
+        }
+    }
     if(key=='a'||key=='A')
     {
         //something something attack with all selected units that are valid to do so
     }
     if(key=='c')
     {
-        createEntity(mouseX, mouseY);
+        prepareEntity(mouseX, mouseY);
+    }
+    if(key=='s')
+    {
+        sendMove(mouseX,mouseY);
     }
 }
