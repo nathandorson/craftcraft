@@ -9,8 +9,8 @@ var receivedActions = {
     doAction: function(cl, data) {
         if(cl.player != null)
         {
-            let actionType = data["action"];
-            let id = data["unit"];
+            let actionType = data["actionType"];
+            let id = data["id"];
             if(actionType == "move")
             {
                 if(data.hasOwnProperty("target"))
@@ -21,7 +21,7 @@ var receivedActions = {
                 }
                 else
                 {
-                    let tx = parsedata["x"];
+                    let tx = data["x"];
                     let ty = data["y"];
                     cl.player.move(id, tx, ty);
                 }
@@ -49,12 +49,10 @@ var receivedActions = {
     },
     join: function(cl, data) {
         cl.setPlayer(game.requestPlayer(game));
-        if(game.getEntityList().length > 0)
+        let entityList = game.getEntityList();
+        for(let i = 0; i < entityList.length; i++)
         {
-            for(let i = 0; i < game.getEntityList().length; i++)
-            {
-                ConnectedClient.createUnit(game.getEntityList()[i]);
-            }
+            cl.createUnit(entityList[i]);
         }
     },
     createUnit: function(cl, data) {

@@ -40,7 +40,7 @@ class Player
             let ent = this.ownedEntities[i];
             if(ent.id == id)
             {
-                return id;
+                return ent;
             }
         }
         return null;
@@ -156,7 +156,7 @@ class Entity
         this.z = z;
         this.game = game;
         this.moveSpeed = 1;
-        this.stopMoveForAttackRadius = 2;
+        this.stopMoveRadius = 2;
         this.emitter = new EventEmitter();
         var _this = this;
         this._update = () => { _this.update(); };
@@ -191,6 +191,7 @@ class Entity
             {
 
             }
+            this.move = function() { };
         }
         if(type=="cave")
         {
@@ -203,9 +204,9 @@ class Entity
     }
     move()
     {
-        if(this.target == null) return;
-        let diffX = this.x - this.target.x;
-        let diffY = this.y - this.target.y;
+        let diffX = this.target.x - this.x;
+        let diffY = this.target.y - this.y;
+        if(this.target == null || diffX ** 2 + diffY ** 2 < this.stopMoveRadius ** 2) return false;
         let distSqr = diffX ** 2 + diffY ** 2;
         let dist = Math.sqrt(distSqr);
         let deltaX = (diffX / dist) * this.moveSpeed;
@@ -213,25 +214,25 @@ class Entity
         this.x += deltaX;
         this.y += deltaY;
         this.emitter.emit("update");
+        return true;
     }
     update()
     {
-        if(state == "attack")
+        if(this.state === EntityStates.ATTACKING)
         {
             let target = this.target;
             let diffX = this.x - target.x;
             let diffY = this.y - target.y;
-            if(diffX ** 2 + diffY ** 2 > this.stopMoveForAttackRadius ** 2)
+            if(!this.move()) 
             {
-                this.move();
-            }
-            else 
-            {
-                target.health += -1;
+                if(target != null)
+                {
+                    target.health += -1;
+                }
             }
             
         }
-        if(state == "move")
+        else if(this.state === EntityStates.MOVING)
         {
             this.move();
         }
@@ -317,6 +318,10 @@ class GameBoard
     }
     update()
     {
+        for(let i = 0; i < entityList.length; i++)
+        {
+            entityList[i].update();
+        }
         this.emitter.emit("update");
     }
 }
