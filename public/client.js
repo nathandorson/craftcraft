@@ -112,8 +112,22 @@ function drawWorld()
     for(let i = 0; i < entityList.length; i++)
     {
         ent = entityList[i];
-        fill(255);
-        ellipse(ent.x,ent.y,10,10);
+        if(ent.type=="house")
+        {
+            fill(100);
+            ellipse(ent.x,ent.y,40,40);
+        }
+        if(ent.type=="fighter")
+        {
+            fill(255,0,0);
+            ellipse(ent.x,ent.y,14,14);
+        }
+        if(ent.type=="worker")
+        {
+            fill(255);
+            ellipse(ent.x,ent.y,10,10);
+        }
+        
     }
 }
 
