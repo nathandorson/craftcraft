@@ -15,7 +15,8 @@ var receivedActions = {
             {
                 if(data.hasOwnProperty("target"))
                 {
-                    let target = data["target"];
+                    let targetId = data["target"];
+                    let target = game.findEntityByID(targetId);
                     cl.player.move(id, target);
                 }
                 else
@@ -27,12 +28,14 @@ var receivedActions = {
             }
             else if(actionType == "attack")
             {
-                let target = data["target"];
+                let targetId = data["target"];
+                let target = game.findEntityByID(targetId);
                 cl.player.attack(id, target);
             }
             else if(actionType == "harvest")
             {
-                let target = data["target"];
+                let targetId = data["target"];
+                let target = game.findEntityByID(targetId);
                 cl.player.harvest(id, target);
             }
             else if(actionType == "build")

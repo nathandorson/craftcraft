@@ -58,9 +58,21 @@ class Player
         entity.emitter.on("destroy", () => {
             _this.emitter.emit("destroy", entity);
         });
+        entity.emitter.on("update", () => {
+            _this.emitter.emit("update", entity);
+        });
     }
     move(id, x, y)
     {
+        let target;
+        if(typeof x === "object")
+        {
+            target = x;
+        }
+        else
+        {
+            target = {x: x, y: y};
+        }
         let entity = this.findOwnEntityById(id);
         if(entity != null)
         {
@@ -70,20 +82,38 @@ class Player
     }
     harvest(id, targetId)
     {
+        let target;
+        if(typeof targetId === "object")
+        {
+            target = targetId;
+        }
+        else
+        {
+            target = findEntityByID(targetId);
+        }
         let entity = this.findOwnEntityById(id);
         if(entity != null)
         {
             entity.state = EntityStates.HARVESTING;
-            entity.target = findEntityByID(targetId); //can be null
+            entity.target = target;
         }
     }
     attack(id, targetId)
     {
+        let target;
+        if(typeof targetId === "object")
+        {
+            target = targetId;
+        }
+        else
+        {
+            target = findEntityByID(targetId);
+        }
         let entity = this.findOwnEntityById(id);
         if(entity != null)
         {
             entity.state = EntityStates.ATTACKING;
-            entity.target = findEntityByID(targetId); //can be null
+            entity.target = target;
         }
     }
     build(id, buildingType, x, y)
@@ -125,75 +155,23 @@ class Entity
         this.y = y;
         this.z = z;
         this.game = game;
-        this._update = () => { this.update(); };
+        this.moveSpeed = 1;
+        this.stopMoveForAttackRadius = 2;
+        this.emitter = new EventEmitter();
+        var _this = this;
+        this._update = () => { _this.update(); };
+        this._oupdate = this.update;
         this.game.emitter.on("update", this._update);
         this.state = EntityStates.IDLE;
+        this.target = null;
         if(type=="worker")
         {
-            this.move = function(x,y)
-            {
-                this.x = x;
-                this.y = y;
-                this.z = z;
-            }
-            this.harvest = function()
-            {
-                //
-            }
-            this.harvesting = false;
-            this.harvestTargetID = null;
-            this.build = function()
-            {
-                //
-            }
-            this.building = false;
-            this.buildingTargetLocation = null;
-            this.buildingTargetID = null;
             this.health = 3;
         }
         if(type=="fighter")
         {
-            this.move = function(x,y,z)
-            {
-                this.state = "move"
-                this.targetCoords = [x, y, z]
-            }
-            this.attack = function(targetID)
-            {
-                this.state = "attack";
-                this.attackTargetID = targetID;
-            }
-            this.act = function() //run every tick
-            {
-                if(state == "attack")
-                {
-                    let target = getEntityById(this.attackTargetID);
-                    let diffX = this.x - target.x;
-                    let diffY = this.y - target.y;
-                    if(diffX + diffY < 2)
-                    {
-                        let theta = Math.atan(diffY/diffX);
-                        let deltaX = 3 * Math.cos(theta);
-                        let deltaY = 3 * Math.sin(theta);
-                        this.move(this.x + deltaX, this.y + deltaY, this.z)
-                    } else 
-                    {
-                        target.health += -1;
-                    }
-                    
-                }
-                if(state == "move")
-                {
-                    let diffX = this.x - targetCoords[0];
-                    let diffY = this.y - targetCoords[1];
-                    let theta = Math.atan(diffY/diffX);
-                    let deltaX = 3 * Math.cos(theta);
-                    let deltaY = 3 * Math.sin(theta);
-                    this.move(this.x + deltaX, this.y + deltaY, this.z)
-                }
-            }
-            this.attackTargetID = null;
             this.health = 5;
+            this.moveSpeed = 2;
         }
         if(type=="house")
         {
@@ -223,9 +201,40 @@ class Entity
             }
         }
     }
+    move()
+    {
+        if(this.target == null) return;
+        let diffX = this.x - this.target.x;
+        let diffY = this.y - this.target.y;
+        let distSqr = diffX ** 2 + diffY ** 2;
+        let dist = Math.sqrt(distSqr);
+        let deltaX = (diffX / dist) * this.moveSpeed;
+        let deltaY = (diffY / dist) * this.moveSpeed;
+        this.x += deltaX;
+        this.y += deltaY;
+        this.emitter.emit("update");
+    }
     update()
     {
-
+        if(state == "attack")
+        {
+            let target = this.target;
+            let diffX = this.x - target.x;
+            let diffY = this.y - target.y;
+            if(diffX ** 2 + diffY ** 2 > this.stopMoveForAttackRadius ** 2)
+            {
+                this.move();
+            }
+            else 
+            {
+                target.health += -1;
+            }
+            
+        }
+        if(state == "move")
+        {
+            this.move();
+        }
     }
     destroy()
     {
@@ -271,7 +280,7 @@ class GameBoard
     //update ent list based on action
     updateUnit(id, action){
 
-        let ent = getEntityById(id)
+        let ent = findEntityByID(id)
 
         if(action[0] == "build"){
             ent.build(action[1])
@@ -290,7 +299,7 @@ class GameBoard
     //update ent list based on action
     updateHouse(id, action){
 
-        let ent = getEntityById(id);
+        let ent = findEntityByID(id);
 
         if(action[0] == "makeWorker"){
             ent.makeWorker(action[1])
@@ -300,7 +309,7 @@ class GameBoard
     //update ent list based on action
     updateCave(id, action){
 
-        ent = getEntityById(id) 
+        ent = findEntityByID(id) 
 
         if(action[0] == "changeResources"){
             ent.changeResources(action[1])
@@ -327,6 +336,7 @@ module.exports = {
         getEntityList: function() { return entityList; },
         requestId: requestId,
         Entity: Entity,
-        emitter: emitter
+        emitter: emitter,
+        findEntityByID: findEntityByID
     }
 };
