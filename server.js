@@ -15,7 +15,8 @@ var receivedActions = {
             {
                 if(data.hasOwnProperty("target"))
                 {
-                    let target = data["target"];
+                    let targetId = data["target"];
+                    let target = game.findEntityByID(targetId);
                     cl.player.move(id, target);
                 }
                 else
@@ -27,12 +28,14 @@ var receivedActions = {
             }
             else if(actionType == "attack")
             {
-                let target = data["target"];
+                let targetId = data["target"];
+                let target = game.findEntityByID(targetId);
                 cl.player.attack(id, target);
             }
             else if(actionType == "harvest")
             {
-                let target = data["target"];
+                let targetId = data["target"];
+                let target = game.findEntityByID(targetId);
                 cl.player.harvest(id, target);
             }
             else if(actionType == "build")
@@ -46,6 +49,22 @@ var receivedActions = {
     },
     join: function(cl, data) {
         cl.setPlayer(game.requestPlayer(game));
+        if(game.getEntityList().length > 0)
+        {
+            for(let i = 0; i < game.getEntityList().length; i++)
+            {
+                ConnectedClient.createUnit(game.getEntityList()[i]);
+            }
+        }
+    },
+    createUnit: function(cl, data) {
+        let x = data.x;
+        let y = data.y;
+        let entityType = data.entityType;
+        let id = game.requestId();
+        let z = game.getMap()[Math.floor(x / game.getSideLength())][Math.floor(y / game.getSideLength())].height;
+        let entity = new game.Entity(entityType, id, x, y, z, game);
+        cl.player.addEntity(entity);
     }
 };
 class ConnectedClient
@@ -86,12 +105,24 @@ class ConnectedClient
             }));
         };
     }
+    update()
+    {
+
+    }
     setPlayer(player)
     {
         this.player = player;
         player.emitter.on("create", this.createUnit);
         player.emitter.on("update", this.updateUnit);
         player.emitter.on("destroy", this.destroyUnit);
+        this.sendWorld();
+    }
+    sendWorld()
+    {
+        this.socket.send(JSON.stringify({
+            type: "sendMap",
+            worldMap: game.getMap()
+        }));
     }
 }
 module.exports = {
@@ -109,7 +140,15 @@ module.exports = {
             });
             socket.on("message", (data) => {
                 let dataObj = JSON.parse(data);
-                receivedActions[dataObj.type](client, dataObj);
+                console.log(dataObj);
+                if(receivedActions.hasOwnProperty(dataObj.type))
+                {
+                    receivedActions[dataObj.type](client, dataObj);
+                }
+                else
+                {
+                    console.log("invalid packet message type " + dataObj.type);
+                }
             });
         });
     },
