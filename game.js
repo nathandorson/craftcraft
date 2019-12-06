@@ -211,9 +211,11 @@ class Entity
         let dist = Math.sqrt(distSqr);
         let deltaX = (diffX / dist) * this.moveSpeed;
         let deltaY = (diffY / dist) * this.moveSpeed;
-        this.x += deltaX;
-        this.y += deltaY;
-        this.emitter.emit("update");
+        if(!this.detectCollisions(this.x + deltaX, this.y + deltaY)){
+            this.x += deltaX;
+            this.y += deltaY;
+            this.emitter.emit("update");
+        }
         return true;
     }
     update()
@@ -242,6 +244,18 @@ class Entity
         this.emitter.emit("destroy");
         this.game.emitter.removeListener("update", this._update);
         this.emitter.removeAllListeners();
+    }
+    detectCollisions(checkX, checkY)
+    {
+        entityNum = entityList.length;
+        for(var i = 0; i < entityNum; i++)
+        {
+            if((abs(entityList[i].x - checkX) > 4) && (abs(entityList[i].y - checkY) > 4))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
