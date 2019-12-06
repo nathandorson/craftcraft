@@ -267,7 +267,7 @@ class Entity
         let entityNum = entityList.length;
         for(var i = 0; i < entityNum; i++)
         {
-            if((Math.abs(entityList[i].x - checkX) < 6) && (Math.abs(entityList[i].y - checkY) < 6))
+            if(Math.sqrt((entityList[i].x - checkX) ** 2 + (entityList[i].y - checkY) ** 2) <= 5)
             {
                 return true;
             }
