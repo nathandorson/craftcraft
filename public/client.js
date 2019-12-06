@@ -171,7 +171,7 @@ ws.onmessage = function(ev) {
 
 function setup()
 {
-    createCanvas(512,512);
+    createCanvas(640,640);
     background(255);
 }
 function draw()
