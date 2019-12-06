@@ -13,7 +13,7 @@ function requestId()
     return highestId++;
 }
 
-var mapSideLength = 512;
+var mapSideLength = 10 * 64;
 var tileSideLength = 64;
 var map = [];
 for(let r = 0; r < mapSideLength; r+=tileSideLength)
