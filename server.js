@@ -73,37 +73,36 @@ class ConnectedClient
         this.targetPlayer = -1;
         this.player = null;
         this.queuedUpdates = [];
-    }
-    createUnit(unit) {
-        //send create event to client
-        this.socket.send(JSON.stringify({
-            type: "createEntity",
-            id: unit.id,
-            x: unit.x,
-            y: unit.y,
-            z: unit.z,
-            unitType: unit.type,
-            isFriendly: unit.owner == this.player
-        }));
-    }
-    updateUnit(unit) {
-        //send updated information to client
-        this.socket.send(JSON.stringify({
-            type: "updateEntity",
-            id: unit.id,
-            x: unit.x,
-            y: unit.y,
-            z: unit.z,
-            state: unit.state
-        }));
-    }
-    destroyUnit(unit) 
-    {
-        //tell client unit is no more
-        this.socket.send(JSON.stringify({
-            type: "destroyEntity",
-            id: unit.id
-        }));
+        this.createUnit = (unit) => {
+            //send create event to client
+            this.socket.send(JSON.stringify({
+                type: "createEntity",
+                id: unit.id,
+                x: unit.x,
+                y: unit.y,
+                z: unit.z,
+                unitType: unit.type,
+                isFriendly: unit.owner == this
+            }));
+        };
+        this.updateUnit = (unit) => {
+            //send updated information to client
+            this.socket.send(JSON.stringify({
+                type: "updateEntity",
+                id: unit.id,
+                x: unit.x,
+                y: unit.y,
+                z: unit.z,
+                state: unit.state
+            }));
+        };
+        this.destroyUnit = (unit) => {
+            //tell client unit is no more
+            this.socket.send(JSON.stringify({
+                type: "destroyEntity",
+                id: unit.id
+            }));
+        };
     }
     update()
     {

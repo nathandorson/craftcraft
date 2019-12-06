@@ -264,10 +264,10 @@ class Entity
     }
     detectCollisions(checkX, checkY)
     {
-        entityNum = entityList.length;
+        let entityNum = entityList.length;
         for(var i = 0; i < entityNum; i++)
         {
-            if((abs(entityList[i].x - checkX) > 4) && (abs(entityList[i].y - checkY) > 4))
+            if((Math.abs(entityList[i].x - checkX) > 4) && (Math.abs(entityList[i].y - checkY) > 4))
             {
                 return true;
             }
