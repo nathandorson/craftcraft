@@ -1,9 +1,10 @@
 class Entity
 {
-    constructor(type,id,x,y,z)
+    constructor(type,id,isFriendly,x,y,z)
     {
         this.type = type;
         this.id = id;
+        this.isFriendly = isFriendly;
         this.x = x;
         this.y = y;
         this.z = z;
@@ -114,25 +115,47 @@ function drawWorld()
         ent = entityList[i];
         if(ent.type=="house")
         {
-            fill(100);
-            ellipse(ent.x,ent.y,40,40);
+            if(ent.isFriendly)
+            {
+                fill(150);
+                ellipse(ent.x,ent.y,40,40);
+            }
+            else{
+                fill(75);
+                ellipse(ent.x,ent.y,40,40);
+            }
         }
         if(ent.type=="fighter")
         {
-            fill(255,0,0);
-            ellipse(ent.x,ent.y,14,14);
+            if(ent.isFriendly)
+            {
+                fill(255,0,0);
+                ellipse(ent.x,ent.y,14,14);
+            }
+            else
+            {
+                fill(155,0,0);
+                ellipse(ent.x,ent.y,14,14);
+            }   
         }
         if(ent.type=="worker")
         {
-            fill(255);
-            ellipse(ent.x,ent.y,10,10);
+            if(ent.isFriendly)
+            {
+                fill(255);
+                ellipse(ent.x,ent.y,10,10);
+            }
+            else
+            {
+                fill(180);
+                ellipse(ent.x,ent.y,10,10);
+            }
         }
-        
     }
 }
 
 var connected = false;
-var ws = new WebSocket("ws://10.229.222.61:5524");
+var ws = new WebSocket("ws://10.229.222.123:5524");
 ws.onopen = function() {
     console.log("connected");
     ws.send(JSON.stringify({
@@ -153,7 +176,7 @@ ws.onmessage = function(ev) {
     }
     if (data.type == "createEntity")
     {
-        entityList.push(new Entity(data.entityType, data.id, data.x, data.y, data.z))
+        entityList.push(new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z))
     }
     if(data.type == "updateEntity")
     {
@@ -171,7 +194,7 @@ ws.onmessage = function(ev) {
 
 function setup()
 {
-    createCanvas(512,512);
+    createCanvas(640,640);
     background(255);
 }
 function draw()
@@ -217,17 +240,47 @@ function selectEntities(xi,yi,xf,yf)
 
 function sendMove(x,y)
 {
-    for(let i = 0; i < selectedEntities.length; i++)
+    let DEFAULTRADIUS = 40;
+    let targetId = -1;
+    for(let i = 0; i < entityList.length; i++)
     {
-        let ent = selectedEntities[i];
-        ws.send(JSON.stringify({
-            type: "doAction",
-            actionType: "move",
-            id: ent.id,
-            x: x,
-            y: y
-        }));
+        let ent = entityList[i];
+        if(!ent.isFriendly)
+        {
+            let dist = Math.sqrt((mouseX-ent.x)**2 + (mouseY-ent.y)**2);
+            if(dist < DEFAULTRADIUS)
+            {
+                targetId = ent.id;
+            }
+        }
     }
+    if(targetId != -1)
+    {
+        for(let i = 0; i < selectedEntities.length; i++)
+        {
+            let ent = selectedEntities[i];
+            ws.send(JSON.stringify({
+                type: "doAction",
+                actionType: "attack",
+                id: ent.id,
+                targetId: targetId
+            }));
+        }
+    }
+    else{
+        for(let i = 0; i < selectedEntities.length; i++)
+        {
+            let ent = selectedEntities[i];
+            ws.send(JSON.stringify({
+                type: "doAction",
+                actionType: "move",
+                id: ent.id,
+                x: x,
+                y: y
+            }));
+        }
+    }
+    
 }
 
 var entityPrimed = false;
