@@ -267,12 +267,12 @@ class Entity
         let entityNum = entityList.length;
         for(var i = 0; i < entityNum; i++)
         {
-            if((Math.abs(entityList[i].x - checkX) > 4) && (Math.abs(entityList[i].y - checkY) > 4))
+            if((Math.abs(entityList[i].x - checkX) < 6) && (Math.abs(entityList[i].y - checkY) < 6))
             {
-                return false;
+                return true;
             }
         }
-        return true;
+        return false;
     }
 }
 
