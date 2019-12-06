@@ -61,7 +61,7 @@ var receivedActions = {
         let entityType = data.entityType;
         let id = game.requestId();
         let z = game.getMap()[Math.floor(x / game.getSideLength())][Math.floor(y / game.getSideLength())].height;
-        let entity = new game.Entity(entityType, id, x, y, z, game);
+        let entity = new game.Entity(entityType, id, x, y, z, game, cl.player);
         cl.player.addEntity(entity);
     }
 };
@@ -73,35 +73,37 @@ class ConnectedClient
         this.targetPlayer = -1;
         this.player = null;
         this.queuedUpdates = [];
-        this.createUnit = (unit) => {
-            //send create event to client
-            this.socket.send(JSON.stringify({
-                type: "createEntity",
-                id: unit.id,
-                x: unit.x,
-                y: unit.y,
-                z: unit.z,
-                unitType: unit.type
-            }));
-        };
-        this.updateUnit = (unit) => {
-            //send updated information to client
-            this.socket.send(JSON.stringify({
-                type: "updateEntity",
-                id: unit.id,
-                x: unit.x,
-                y: unit.y,
-                z: unit.z,
-                state: unit.state
-            }));
-        };
-        this.destroyUnit = (unit) => {
-            //tell client unit is no more
-            this.socket.send(JSON.stringify({
-                type: "destroyEntity",
-                id: unit.id
-            }));
-        };
+    }
+    createUnit(unit) {
+        //send create event to client
+        this.socket.send(JSON.stringify({
+            type: "createEntity",
+            id: unit.id,
+            x: unit.x,
+            y: unit.y,
+            z: unit.z,
+            unitType: unit.type,
+            isFriendly: unit.owner == this.player
+        }));
+    }
+    updateUnit(unit) {
+        //send updated information to client
+        this.socket.send(JSON.stringify({
+            type: "updateEntity",
+            id: unit.id,
+            x: unit.x,
+            y: unit.y,
+            z: unit.z,
+            state: unit.state
+        }));
+    }
+    destroyUnit(unit) 
+    {
+        //tell client unit is no more
+        this.socket.send(JSON.stringify({
+            type: "destroyEntity",
+            id: unit.id
+        }));
     }
     update()
     {
