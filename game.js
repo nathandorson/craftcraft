@@ -147,7 +147,7 @@ const EntityStates = {
 };
 class Entity
 {
-    constructor(type, id, x, y, z, game)
+    constructor(type, id, x, y, z, game, owner)
     {
         this.type = type;
         this.id = id;
@@ -155,8 +155,12 @@ class Entity
         this.y = y;
         this.z = z;
         this.game = game;
+        this.owner = owner;
+        
         this.moveSpeed = 1;
-        this.stopMoveRadius = 2;
+        this.stopMoveRadius = 1;
+        this.stopMoveAttackRadius = 2;
+        this.damage = 1;
         this.emitter = new EventEmitter();
         var _this = this;
         this._update = () => { _this.update(); };
@@ -167,11 +171,13 @@ class Entity
         if(type=="worker")
         {
             this.health = 3;
+            this.damage = 1;
         }
         if(type=="fighter")
         {
             this.health = 5;
             this.moveSpeed = 2;
+            this.damage = 2;
         }
         if(type=="house")
         {
@@ -204,9 +210,9 @@ class Entity
     }
     move()
     {
+        if(this.target == null) return false;
         let diffX = this.target.x - this.x;
         let diffY = this.target.y - this.y;
-        if(this.target == null || diffX ** 2 + diffY ** 2 < this.stopMoveRadius ** 2) return false;
         let distSqr = diffX ** 2 + diffY ** 2;
         let dist = Math.sqrt(distSqr);
         let deltaX = (diffX / dist) * this.moveSpeed;
@@ -220,23 +226,34 @@ class Entity
     }
     update()
     {
+        let targetDistSqr = Infinity;
+        if(this.target != null)
+        {
+            let diffX = this.target.x - this.x;
+            let diffY = this.target.y - this.y;
+            targetDistSqr = diffX ** 2 + diffY ** 2;
+        }
         if(this.state === EntityStates.ATTACKING)
         {
             let target = this.target;
-            let diffX = this.x - target.x;
-            let diffY = this.y - target.y;
-            if(!this.move()) 
+            if(targetDistSqr > this.stopMoveAttackRadius ** 2)
+            {
+                this.move();
+            }
+            else
             {
                 if(target != null)
                 {
-                    target.health += -1;
+                    target.health -= this.damage;
                 }
             }
-            
         }
         else if(this.state === EntityStates.MOVING)
         {
-            this.move();
+            if(targetDistSqr > this.stopMoveRadius ** 2)
+            {
+                this.move();
+            }
         }
     }
     destroy()
@@ -247,10 +264,10 @@ class Entity
     }
     detectCollisions(checkX, checkY)
     {
-        entityNum = entityList.length;
+        let entityNum = entityList.length;
         for(var i = 0; i < entityNum; i++)
         {
-            if((abs(entityList[i].x - checkX) > 4) && (abs(entityList[i].y - checkY) > 4))
+            if((Math.abs(entityList[i].x - checkX) > 4) && (Math.abs(entityList[i].y - checkY) > 4))
             {
                 return false;
             }

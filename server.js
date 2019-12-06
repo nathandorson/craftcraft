@@ -61,7 +61,7 @@ var receivedActions = {
         let entityType = data.entityType;
         let id = game.requestId();
         let z = game.getMap()[Math.floor(x / game.getSideLength())][Math.floor(y / game.getSideLength())].height;
-        let entity = new game.Entity(entityType, id, x, y, z, game);
+        let entity = new game.Entity(entityType, id, x, y, z, game, cl.player);
         cl.player.addEntity(entity);
     }
 };
@@ -81,7 +81,8 @@ class ConnectedClient
                 x: unit.x,
                 y: unit.y,
                 z: unit.z,
-                unitType: unit.type
+                unitType: unit.type,
+                isFriendly: unit.owner == this
             }));
         };
         this.updateUnit = (unit) => {
