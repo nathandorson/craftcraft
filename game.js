@@ -252,10 +252,10 @@ class Entity
         {
             if((abs(entityList[i].x - checkX) > 4) && (abs(entityList[i].y - checkY) > 4))
             {
-                return true;
+                return false;
             }
         }
-        return false;
+        return true;
     }
 }
 
