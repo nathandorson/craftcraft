@@ -267,7 +267,15 @@ class Entity
         let entityNum = entityList.length;
         for(var i = 0; i < entityNum; i++)
         {
-            if((Math.sqrt((entityList[i].x - checkX) ** 2 + (entityList[i].y - checkY) ** 2) <= 5) && entityList[i] != this)
+            let selfRad = 0;
+            if(this.type == "fighter"){selfRad = 7;}
+            if(this.type = "worker"){selfRad = 5;}
+            entCheck = entityList[i]
+            checkRad = 0;
+            if(entCheck.type = "fighter"){checkRad = 7;}
+            if(entCheck.type = "worker"){checkRad = 5;}
+            if(entCheck.type = "house"){checkrad = 20;}
+            if((Math.sqrt((entCheck.x - checkX) ** 2 + (entCheck.y - checkY) ** 2) <= (selfRad + checkRad) && entCheck != this))
             {
                 return true;
             }
