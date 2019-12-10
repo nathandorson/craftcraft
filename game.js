@@ -270,8 +270,8 @@ class Entity
             let selfRad = 0;
             if(this.type == "fighter"){selfRad = 7;}
             if(this.type = "worker"){selfRad = 5;}
-            entCheck = entityList[i]
-            checkRad = 0;
+            let entCheck = entityList[i]
+            let checkRad = 0;
             if(entCheck.type = "fighter"){checkRad = 7;}
             if(entCheck.type = "worker"){checkRad = 5;}
             if(entCheck.type = "house"){checkrad = 20;}
