@@ -172,16 +172,19 @@ class Entity
         {
             this.health = 3;
             this.damage = 1;
+            this.radius = 5;
         }
         if(type=="fighter")
         {
             this.health = 5;
             this.moveSpeed = 2;
             this.damage = 2;
+            this.radius = 7;
         }
         if(type=="house")
         {
             this.isBigHouse = false;
+            this.radius = 20;
             this.attack = function(type)
             {
                 if(type=="fighter")
@@ -267,14 +270,9 @@ class Entity
         let entityNum = entityList.length;
         for(var i = 0; i < entityNum; i++)
         {
-            let selfRad = 0;
-            if(this.type == "fighter"){selfRad = 7;}
-            if(this.type = "worker"){selfRad = 5;}
+            let selfRad = this.radius;
             let entCheck = entityList[i]
-            let checkRad = 0;
-            if(entCheck.type = "fighter"){checkRad = 7;}
-            if(entCheck.type = "worker"){checkRad = 5;}
-            if(entCheck.type = "house"){checkrad = 20;}
+            let checkRad = entCheck.radius;
             if((Math.sqrt((entCheck.x - checkX) ** 2 + (entCheck.y - checkY) ** 2) <= (selfRad + checkRad) && entCheck != this))
             {
                 return true;
