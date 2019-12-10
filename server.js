@@ -13,9 +13,9 @@ var receivedActions = {
             let id = data["id"];
             if(actionType == "move")
             {
-                if(data.hasOwnProperty("target"))
+                if(data.hasOwnProperty("targetId"))
                 {
-                    let targetId = data["target"];
+                    let targetId = data["targetId"];
                     let target = game.findEntityByID(targetId);
                     cl.player.move(id, target);
                 }
@@ -28,13 +28,13 @@ var receivedActions = {
             }
             else if(actionType == "attack")
             {
-                let targetId = data["target"];
+                let targetId = data["targetId"];
                 let target = game.findEntityByID(targetId);
                 cl.player.attack(id, target);
             }
             else if(actionType == "harvest")
             {
-                let targetId = data["target"];
+                let targetId = data["targetId"];
                 let target = game.findEntityByID(targetId);
                 cl.player.harvest(id, target);
             }
@@ -52,7 +52,7 @@ var receivedActions = {
         let entityList = game.getEntityList();
         for(let i = 0; i < entityList.length; i++)
         {
-            cl.createUnit(entityList[i]);
+            cl.createUnit(entityList[i], (data) => { cl.socket.send(data); }, cl.player);
         }
     },
     createUnit: function(cl, data) {
@@ -65,6 +65,25 @@ var receivedActions = {
         cl.player.addEntity(entity);
     }
 };
+function broadcast(strMessage)
+{
+    for(let i = 0; i < clientList.length; i++)
+    {
+        clientList[i].socket.send(strMessage);
+    }
+}
+function getUnitCreationInformation(unit, player)
+{
+    return {
+        type: "createEntity",
+        id: unit.id,
+        x: unit.x,
+        y: unit.y,
+        z: unit.z,
+        unitType: unit.type,
+        isFriendly: unit.owner == player
+    };
+}
 class ConnectedClient
 {
     constructor(socket)
@@ -73,21 +92,15 @@ class ConnectedClient
         this.targetPlayer = -1;
         this.player = null;
         this.queuedUpdates = [];
-        this.createUnit = (unit) => {
+        this.createUnit = (unit, send, player) => {
             //send create event to client
-            this.socket.send(JSON.stringify({
-                type: "createEntity",
-                id: unit.id,
-                x: unit.x,
-                y: unit.y,
-                z: unit.z,
-                unitType: unit.type,
-                isFriendly: unit.owner == this
-            }));
+            if(typeof send !== "function") send = broadcast;
+            send(JSON.stringify(getUnitCreationInformation(unit, player)));
         };
-        this.updateUnit = (unit) => {
+        this.updateUnit = (unit, send) => {
             //send updated information to client
-            this.socket.send(JSON.stringify({
+            if(typeof send === "undefined") send = broadcast;
+            send(JSON.stringify({
                 type: "updateEntity",
                 id: unit.id,
                 x: unit.x,
@@ -96,9 +109,10 @@ class ConnectedClient
                 state: unit.state
             }));
         };
-        this.destroyUnit = (unit) => {
+        this.destroyUnit = (unit, send) => {
             //tell client unit is no more
-            this.socket.send(JSON.stringify({
+            if(typeof send === "undefined") send = broadcast;
+            send(JSON.stringify({
                 type: "destroyEntity",
                 id: unit.id
             }));
@@ -111,7 +125,7 @@ class ConnectedClient
     setPlayer(player)
     {
         this.player = player;
-        player.emitter.on("create", this.createUnit);
+        player.emitter.on("create", (unit) => { this.createUnit(unit, null, player); });
         player.emitter.on("update", this.updateUnit);
         player.emitter.on("destroy", this.destroyUnit);
         this.sendWorld();
