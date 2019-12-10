@@ -275,7 +275,7 @@ class Entity
             if(entCheck.type = "fighter"){checkRad = 7;}
             if(entCheck.type = "worker"){checkRad = 5;}
             if(entCheck.type = "house"){checkrad = 20;}
-            if((Math.sqrt((entCheck.x - checkX) ** 2 + (entCheck.y - checkY) ** 2) <= (selfRad + checkRad) && entCheck != this)
+            if((Math.sqrt((entCheck.x - checkX) ** 2 + (entCheck.y - checkY) ** 2) <= (selfRad + checkRad) && entCheck != this))
             {
                 return true;
             }
