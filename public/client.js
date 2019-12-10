@@ -99,6 +99,7 @@ function findEntityByID(id,remove=false)
 
 function drawWorld()
 {
+    stroke(0);
     for(let r = 0; r < worldMap.length; r++)
     {
         for(let c = 0; c < worldMap[r].length; c++)
@@ -113,6 +114,14 @@ function drawWorld()
     for(let i = 0; i < entityList.length; i++)
     {
         ent = entityList[i];
+        stroke(0);
+        for(let i = 0; i < selectedEntities.length; i++)
+        {
+            if(ent.id == selectedEntities[i].id)
+            {
+                stroke(0,0,255);
+            }
+        }
         if(ent.type=="house")
         {
             if(ent.isFriendly)
@@ -205,10 +214,6 @@ function draw()
     {
         rect(selectionXi,selectionYi,mouseX-selectionXi,mouseY-selectionYi);
     }
-    else
-    {   
-        rect(selectionXi,selectionYi,selectionXf-selectionXi,selectionYf-selectionYi);
-    }
     if(entityPrimed)
     {
         fill(255);
@@ -231,7 +236,7 @@ function selectEntities(xi,yi,xf,yf)
     for(let i = 0; i < entityList.length; i++)
     {
         let ent = entityList[i];
-        if(ent.x > lowX && ent.x < highX && ent.y > lowY && ent.y < highY)
+        if(ent.x > lowX && ent.x < highX && ent.y > lowY && ent.y < highY && ent.isFriendly)
         {
             selectedEntities.push(entityList[i]);
         }
