@@ -159,8 +159,11 @@ class Entity
         
         this.moveSpeed = 1;
         this.stopMoveRadius = 1;
-        this.stopMoveAttackRadius = 2;
+        this.stopMoveAttackRadius = 20;
         this.damage = 1;
+        this.damageCooldownMax = 60;
+        this.damageCooldown = 0;
+        this.health = 5;
         this.emitter = new EventEmitter();
         var _this = this;
         this._update = () => { _this.update(); };
@@ -183,6 +186,7 @@ class Entity
         }
         if(type=="house")
         {
+            this.health = 30;
             this.isBigHouse = false;
             this.radius = 20;
             this.attack = function(type)
@@ -204,6 +208,7 @@ class Entity
         }
         if(type=="cave")
         {
+            this.health = 50;
             this.resourcesLeft = 1000000;
             this.changeResources = function(amt)
             {
@@ -247,7 +252,15 @@ class Entity
             {
                 if(target != null)
                 {
-                    target.health -= this.damage;
+                    if(this.damageCooldown <= 0)
+                    {
+                        target.damageThis(this.damage);
+                        this.damageCooldown = this.damageCooldownMax;
+                    }
+                    else
+                    {
+                        this.damageCooldown--;
+                    }
                 }
             }
         }
@@ -264,6 +277,7 @@ class Entity
         this.emitter.emit("destroy");
         this.game.emitter.removeListener("update", this._update);
         this.emitter.removeAllListeners();
+        entityList.splice(entityList.indexOf(this), 1);
     }
     detectCollisions(checkX, checkY)
     {
@@ -279,6 +293,15 @@ class Entity
             }
         }
         return false;
+    }
+    damageThis(amount)
+    {
+        this.health -= amount;
+        if(this.health <= 0)
+        {
+            //we are dead
+            this.destroy();
+        }
     }
 }
 

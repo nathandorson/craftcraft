@@ -52,7 +52,7 @@ var receivedActions = {
         let entityList = game.getEntityList();
         for(let i = 0; i < entityList.length; i++)
         {
-            cl.createUnit(entityList[i], (data) => { cl.socket.send(data); }, cl.player);
+            cl.createUnit(entityList[i], false, null);
         }
     },
     createUnit: function(cl, data) {
@@ -92,10 +92,24 @@ class ConnectedClient
         this.targetPlayer = -1;
         this.player = null;
         this.queuedUpdates = [];
-        this.createUnit = (unit, send, player) => {
+        this.createUnit = (unit, sendToAll, player) => {
             //send create event to client
-            if(typeof send !== "function") send = broadcast;
-            send(JSON.stringify(getUnitCreationInformation(unit, player)));
+            // if(typeof send !== "function") send = broadcast;
+            // send(JSON.stringify(getUnitCreationInformation(unit, player)));
+            if(sendToAll)
+            {
+                for(let i = 0; i < clientList.length; i++)
+                {
+                    let client = clientList[i];
+                    let targetPlayer = client.player;
+                    if(player == null) targetPlayer = null;
+                    client.socket.send(JSON.stringify(getUnitCreationInformation(unit, targetPlayer)));
+                }
+            }
+            else
+            {
+                this.socket.send(JSON.stringify(getUnitCreationInformation(unit, this.player)));
+            }
         };
         this.updateUnit = (unit, send) => {
             //send updated information to client
@@ -125,7 +139,7 @@ class ConnectedClient
     setPlayer(player)
     {
         this.player = player;
-        player.emitter.on("create", (unit) => { this.createUnit(unit, null, player); });
+        player.emitter.on("create", (unit) => { this.createUnit(unit, true, player); });
         player.emitter.on("update", this.updateUnit);
         player.emitter.on("destroy", this.destroyUnit);
         this.sendWorld();
