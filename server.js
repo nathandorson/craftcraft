@@ -160,10 +160,13 @@ class ConnectedClient
             if(entity.owner == this.player)
             {
                 entityList.splice(i, 1);
+                console.log("destroying entity id " + entity.id);
             }
         }
         game.removePlayer(this.player);
+        console.log("removed player");
         clientList.splice(clientList.indexOf(this), 1);
+        console.log("removed client");
     }
 }
 module.exports = {
@@ -175,9 +178,9 @@ module.exports = {
         wsServer.on("connection", (socket, req) => {
             var client = new ConnectedClient(socket);
             clientList.push(client);
-            console.log("client connected from " + req.url);
+            console.log("client connected from " + req.socket.remoteAddress + " :" + req.socket.remotePort);
             socket.on("close", (code, reason) => {
-                console.log("client disconnected from " + req.url);
+                console.log("client disconnected from " + req.socket.remoteAddress + " :" + req.socket.remotePort);
                 client.destroy();
             });
             socket.on("message", (data) => {

@@ -169,9 +169,13 @@ function drawWorld()
         strokeWeight(1);
     }
 }
-var connected = false, ws;
+var connected = false, ws = null;
 function connect(target)
 {
+    if(ws != null)
+    {
+        ws.close();
+    }
     ws = new WebSocket(target);
     ws.onopen = function() {
         console.log("connected to " + target);
@@ -183,6 +187,9 @@ function connect(target)
     ws.onclose = function() {
         console.log("disconnected from " + target);
         connected = false;
+        entityList = [];
+        selectedEntities = [];
+        worldMap = [];
     }
     ws.onmessage = function(ev) {
         let data = JSON.parse(ev.data);
@@ -205,7 +212,8 @@ function connect(target)
         }
         if(data.type == "destroyEntity")
         {
-            findEntityByID(data.id,true);
+            console.log("destroying " + data.id);
+            findEntityByID(data.id, true);
         }
     }
 }
@@ -214,7 +222,8 @@ function setup()
 {
     createCanvas(640,640);
     background(255);
-    connect("ws://10.229.222.123:5524");
+    //connect("ws://10.229.222.123:5524");
+    connect("ws://127.0.0.1:5524");
 }
 function draw()
 {

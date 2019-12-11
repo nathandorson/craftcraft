@@ -252,14 +252,21 @@ class Entity
             {
                 if(target != null)
                 {
-                    if(this.damageCooldown <= 0)
+                    if(target.health < 0)
                     {
-                        target.damageThis(this.damage);
-                        this.damageCooldown = this.damageCooldownMax;
+                        target = null;
                     }
                     else
                     {
-                        this.damageCooldown--;
+                        if(this.damageCooldown <= 0)
+                        {
+                            target.damageThis(this.damage);
+                            this.damageCooldown = this.damageCooldownMax;
+                        }
+                        else
+                        {
+                            this.damageCooldown--;
+                        }
                     }
                 }
             }
