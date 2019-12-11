@@ -151,6 +151,20 @@ class ConnectedClient
             worldMap: game.getMap()
         }));
     }
+    destroy()
+    {
+        let entityList = game.getEntityList();
+        for(let i = entityList.length - 1; i >= 0; i--)
+        {
+            let entity = entityList[i];
+            if(entity.owner == this.player)
+            {
+                entityList.splice(i, 1);
+            }
+        }
+        game.removePlayer(this.player);
+        clientList.splice(clientList.indexOf(this), 1);
+    }
 }
 module.exports = {
     run: function(g)
@@ -161,9 +175,10 @@ module.exports = {
         wsServer.on("connection", (socket, req) => {
             var client = new ConnectedClient(socket);
             clientList.push(client);
-            console.log("client connected");
+            console.log("client connected from " + req.url);
             socket.on("close", (code, reason) => {
-                console.log("client disconnected");
+                console.log("client disconnected from " + req.url);
+                client.destroy();
             });
             socket.on("message", (data) => {
                 let dataObj = JSON.parse(data);

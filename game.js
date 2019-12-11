@@ -402,6 +402,7 @@ module.exports = {
         requestId: requestId,
         Entity: Entity,
         emitter: emitter,
-        findEntityByID: findEntityByID
+        findEntityByID: findEntityByID,
+        removePlayer: function(player) { players.splice(players.indexOf(player), 1); }
     }
 };
