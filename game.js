@@ -243,24 +243,25 @@ class Entity
         }
         if(this.state === EntityStates.ATTACKING)
         {
-            let target = this.target;
-            if(targetDistSqr > this.stopMoveAttackRadius ** 2)
+            let tradius = 0;
+            if(typeof this.target !== "undefined" && this.target != null && typeof this.target.radius === "number") tradius = this.target.radius;
+            if(targetDistSqr > (this.stopMoveAttackRadius + this.radius + tradius) ** 2)
             {
                 this.move();
             }
             else
             {
-                if(target != null)
+                if(this.target != null)
                 {
-                    if(target.health < 0)
+                    if(this.target.health < 0)
                     {
-                        target = null;
+                        this.target = null;
                     }
                     else
                     {
                         if(this.damageCooldown <= 0)
                         {
-                            target.damageThis(this.damage);
+                            this.target.damageThis(this.damage);
                             this.damageCooldown = this.damageCooldownMax;
                         }
                         else
@@ -273,7 +274,9 @@ class Entity
         }
         else if(this.state === EntityStates.MOVING)
         {
-            if(targetDistSqr > this.stopMoveRadius ** 2)
+            let tradius = 0;
+            if(typeof this.target !== "undefined" && this.target != null && typeof this.target.radius === "number") tradius = this.target.radius;
+            if(targetDistSqr > (this.stopMoveRadius + this.radius + tradius) ** 2)
             {
                 this.move();
             }
