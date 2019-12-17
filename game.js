@@ -13,6 +13,11 @@ function requestId()
     return highestId++;
 }
 
+function distanceTo(ent1, ent2)
+{
+    return Math.sqrt((ent1.x - ent2.x)^2 + (ent1.y - ent2.y)^2);
+}
+
 var mapSideLength = 10 * 64;
 var tileSideLength = 64;
 var map = [];
@@ -32,6 +37,7 @@ class Player
         this.game = game;
         this.emitter = new EventEmitter();
         this.ownedEntities = [];
+        this.resources = 0;
     }
     findOwnEntityById(id)
     {
@@ -159,6 +165,7 @@ class Entity
         
         this.moveSpeed = 1;
         this.stopMoveRadius = 1;
+        this.stopMoveHarvestRadius = 20;
         this.stopMoveAttackRadius = 20;
         this.damage = 1;
         this.damageCooldownMax = 60;
@@ -176,6 +183,7 @@ class Entity
             this.health = 3;
             this.damage = 1;
             this.radius = 5;
+            this.carrying = false;
         }
         if(type=="fighter")
         {
@@ -279,6 +287,29 @@ class Entity
             if(targetDistSqr > (this.stopMoveRadius + this.radius + tradius) ** 2)
             {
                 this.move();
+            }
+        }
+        else if(this.state === EntityStates.HARVESTING)
+        {
+            if(!this.carrying)
+            {
+                if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
+                {
+                    this.move();
+                }
+                else
+                {
+                    this.carrying = true;
+                    this.target.changeResources(-1)
+                }
+            }
+            else
+            {
+                let minDistance = Infinity;
+                for(let i = 0; i < entityList.length; i++)
+                {
+                    
+                }
             }
         }
     }
@@ -408,7 +439,23 @@ module.exports = {
         requestPlayer: requestPlayer,
         getMap: function() { return map; },
         getSideLength: function() { return tileSideLength; },
-        getEntityList: function() { return entityList; },
+        getEntityList: function(player) { 
+            let ret = [];
+            for(let i = 0; i < entityList.length; i++)
+            {
+                if(entityList[i].player == player){ret.push(entityList[i])}
+                else
+                {
+                    for(let z = 0; z < entityList.length; z++){
+                        if(entityList[z].player == player && distanceTo(entityList[z], entityList[i]) < 100){
+                            ret.push(entityList[i])
+                            break;
+                        }
+                    }
+                }
+            }
+            return ret;
+        },
         requestId: requestId,
         Entity: Entity,
         emitter: emitter,
