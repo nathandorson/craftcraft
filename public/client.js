@@ -223,7 +223,7 @@ function setup()
     createCanvas(640,640);
     background(255);
     //connect("ws://10.229.222.123:5524");
-    connect("ws://127.0.0.1:5524");
+    connect("ws://209.6.175.114:5524");
 }
 function draw()
 {

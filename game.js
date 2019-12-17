@@ -13,6 +13,11 @@ function requestId()
     return highestId++;
 }
 
+function distanceTo(ent1, ent2)
+{
+    return Math.sqrt((ent1.x - ent2.x)^2 + (ent1.y - ent2.y)^2);
+}
+
 var mapSideLength = 10 * 64;
 var tileSideLength = 64;
 var map = [];
@@ -434,7 +439,23 @@ module.exports = {
         requestPlayer: requestPlayer,
         getMap: function() { return map; },
         getSideLength: function() { return tileSideLength; },
-        getEntityList: function() { return entityList; },
+        getEntityList: function(player) { 
+            let ret = [];
+            for(let i = 0; i < entityList.length; i++)
+            {
+                if(entityList[i].player == player){ret.push(entityList[i])}
+                else
+                {
+                    for(let z = 0; z < entityList.length; z++){
+                        if(entityList[z].player == player && distanceTo(entityList[z], entityList[i]) < 100){
+                            ret.push(entityList[i])
+                            break;
+                        }
+                    }
+                }
+            }
+            return ret;
+        },
         requestId: requestId,
         Entity: Entity,
         emitter: emitter,
