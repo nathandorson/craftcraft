@@ -113,7 +113,49 @@ class Entity
         ellipse(this.x, this.y, this.radius * 2, this.radius * 2);
     }
 }
-
+class Camera
+{
+    constructor()
+    {
+        this.x = 0;
+        this.y = 0;
+        this.vx = 0;
+        this.vy = 0;
+    }
+    zoom()
+    {
+        
+    }
+    pan()
+    {
+        this.vx = 0;
+        this.vy = 0;
+        if(mouseX > 600)
+        {
+            this.vx = 1;
+        }
+        if(mouseX < 100)
+        {
+            this.vx = -1;
+        }
+        if(mouseY > 600)
+        {
+            this.vy = 1;
+        }
+        if(mouseY < 100)
+        {
+            this.vy = -1;
+        }
+        this.x += this.vx;
+        this.y += this.vy;
+    }
+    update()
+    {
+        this.pan();
+        this.zoom();
+        translate(-this.x,-this.y);
+    }
+}
 var entityList = [];
 var selectedEntities = [];
 var mapSideLength = 512;
@@ -223,16 +265,20 @@ function setup()
     createCanvas(640,640);
     background(255);
     //connect("ws://10.229.222.123:5524");
-    connect("ws://127.0.0.1:5524");
+    connect("ws://10.229.220.95:5524");
 }
+
+var cam = new Camera();
+
 function draw()
 {
     background(255);
+    cam.update();
     drawWorld();
     fill(0,0,255,100)
     if(mouseIsPressed)
     {
-        rect(selectionXi,selectionYi,mouseX-selectionXi,mouseY-selectionYi);
+        rect(selectionXi,selectionYi,mouseX+cam.x-selectionXi,mouseY+cam.y-selectionYi);
     }
     if(entityPrimed)
     {
@@ -334,16 +380,16 @@ function mousePressed()
 {
     if(mouseButton == LEFT)
     {
-        selectionXi = mouseX;
-        selectionYi = mouseY;
+        selectionXi = mouseX+cam.x;
+        selectionYi = mouseY+cam.y;
     }
 }
 function mouseReleased()
 {
     if(mouseButton == LEFT)
     {
-        selectionXf = mouseX;
-        selectionYf = mouseY;
+        selectionXf = mouseX+cam.x;
+        selectionYf = mouseY+cam.y;
         selectEntities(selectionXi,selectionYi,selectionXf,selectionYf);
     }
 }
@@ -377,10 +423,10 @@ function keyPressed()
     }
     if(key=='c')
     {
-        prepareEntity(mouseX, mouseY);
+        prepareEntity(mouseX+cam.x, mouseY+cam.y);
     }
     if(key=='s')
     {
-        sendMove(mouseX,mouseY);
+        sendMove(mouseX+cam.x,mouseY+cam.y);
     }
 }
