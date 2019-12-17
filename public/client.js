@@ -8,6 +8,10 @@ class Entity
         this.x = x;
         this.y = y;
         this.z = z;
+        this.mainColor = [255, 255, 255];
+        this.outlineColor = [0, 0, 0];
+        this.outlineWidth = 1;
+        this.radius = 10;
         if(type=="worker")
         {
             this.move = function(x,y)
@@ -29,6 +33,15 @@ class Entity
             this.building = false;
             this.buildingTargetLocation = null;
             this.buildingTargetID = null;
+            if(isFriendly)
+            {
+                this.mainColor = [255, 255, 255];
+            }
+            else
+            {
+                this.mainColor = [180, 180, 180];
+            }
+            this.radius = 5;
         }
         if(type=="fighter")
         {
@@ -44,6 +57,15 @@ class Entity
             }
             this.attacking = false;
             this.attackTargetID = null;
+            if(isFriendly)
+            {
+                this.mainColor = [255, 0, 0];
+            }
+            else
+            {
+                this.mainColor = [155, 0, 0];
+            }
+            this.radius = 7;
         }
         if(type=="house")
         {
@@ -63,6 +85,15 @@ class Entity
             {
 
             }
+            if(isFriendly)
+            {
+                this.mainColor = [150, 150, 150];
+            }
+            else
+            {
+                this.mainColor = [75, 75, 75];
+            }
+            this.radius = 20;
         }
         if(type=="cave")
         {
@@ -71,7 +102,15 @@ class Entity
             {
                 this.resourcesLeft = amt;
             }
+            this.radius = 15;
         }
+    }
+    draw()
+    {
+        fill(this.mainColor[0], this.mainColor[1], this.mainColor[2]);
+        stroke(this.outlineColor[0], this.outlineColor[1], this.outlineColor[2]);
+        strokeWeight(this.outlineWidth);
+        ellipse(this.x, this.y, this.radius * 2, this.radius * 2);
     }
 }
 
@@ -113,91 +152,69 @@ function drawWorld()
     }
     for(let i = 0; i < entityList.length; i++)
     {
-        ent = entityList[i];
-        stroke(0);
-        for(let i = 0; i < selectedEntities.length; i++)
-        {
-            if(ent.id == selectedEntities[i].id)
-            {
-                stroke(0,0,255);
-            }
-        }
-        if(ent.type=="house")
-        {
-            if(ent.isFriendly)
-            {
-                fill(150);
-                ellipse(ent.x,ent.y,40,40);
-            }
-            else{
-                fill(75);
-                ellipse(ent.x,ent.y,40,40);
-            }
-        }
-        if(ent.type=="fighter")
-        {
-            if(ent.isFriendly)
-            {
-                fill(255,0,0);
-                ellipse(ent.x,ent.y,14,14);
-            }
-            else
-            {
-                fill(155,0,0);
-                ellipse(ent.x,ent.y,14,14);
-            }   
-        }
-        if(ent.type=="worker")
-        {
-            if(ent.isFriendly)
-            {
-                fill(255);
-                ellipse(ent.x,ent.y,10,10);
-            }
-            else
-            {
-                fill(180);
-                ellipse(ent.x,ent.y,10,10);
-            }
-        }
+        let ent = entityList[i];
+        /*a note for the writer of the selected entities code
+        that used to be here, probably nate, you used 'i' as the
+        variable name for the for loop inside of the entityList
+        for loop*/
+        ent.draw();
+    }
+    for(let i = 0; i < selectedEntities.length; i++)
+    {
+        let ent = selectedEntities[i];
+        stroke(0, 0, 255);
+        strokeWeight(3);
+        noFill();
+        ellipse(ent.x, ent.y, ent.radius * 2, ent.radius * 2);
+        strokeWeight(1);
     }
 }
-
-var connected = false;
-var ws = new WebSocket("ws://10.229.222.123:5524");
-ws.onopen = function() {
-    console.log("connected");
-    ws.send(JSON.stringify({
-        type: "join"
-    }));
-    connected = true;
-};
-ws.onclose = function() {
-    console.log("disconnected");
-    connected = false;
-}
-ws.onmessage = function(ev) {
-    let data = JSON.parse(ev.data);
-    console.log(data);
-    if (data.type == "sendMap")
+var connected = false, ws = null;
+function connect(target)
+{
+    if(ws != null)
     {
-        worldMap = data.worldMap;
+        ws.close();
     }
-    if (data.type == "createEntity")
-    {
-        entityList.push(new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z))
+    ws = new WebSocket(target);
+    ws.onopen = function() {
+        console.log("connected to " + target);
+        ws.send(JSON.stringify({
+            type: "join"
+        }));
+        connected = true;
+    };
+    ws.onclose = function() {
+        console.log("disconnected from " + target);
+        connected = false;
+        entityList = [];
+        selectedEntities = [];
+        worldMap = [];
     }
-    if(data.type == "updateEntity")
-    {
-        id = data.id;
-        let ent = findEntityByID(id);
-        ent.x = data.x;
-        ent.y = data.y;
-        ent.z = data.z;
-    }
-    if(data.type == "destroyEntity")
-    {
-        findEntityByID(data.id,true);
+    ws.onmessage = function(ev) {
+        let data = JSON.parse(ev.data);
+        //console.log(data);
+        if (data.type == "sendMap")
+        {
+            worldMap = data.worldMap;
+        }
+        if (data.type == "createEntity")
+        {
+            entityList.push(new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z))
+        }
+        if(data.type == "updateEntity")
+        {
+            id = data.id;
+            let ent = findEntityByID(id);
+            ent.x = data.x;
+            ent.y = data.y;
+            ent.z = data.z;
+        }
+        if(data.type == "destroyEntity")
+        {
+            console.log("destroying " + data.id);
+            findEntityByID(data.id, true);
+        }
     }
 }
 
@@ -205,9 +222,12 @@ function setup()
 {
     createCanvas(640,640);
     background(255);
+    //connect("ws://10.229.222.123:5524");
+    connect("ws://127.0.0.1:5524");
 }
 function draw()
 {
+    background(255);
     drawWorld();
     fill(0,0,255,100)
     if(mouseIsPressed)

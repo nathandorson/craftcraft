@@ -160,9 +160,12 @@ class Entity
         
         this.moveSpeed = 1;
         this.stopMoveRadius = 1;
-        this.stopMoveAttackRadius = 2;
         this.stopMoveHarvestRadius = 20;
+        this.stopMoveAttackRadius = 20;
         this.damage = 1;
+        this.damageCooldownMax = 60;
+        this.damageCooldown = 0;
+        this.health = 5;
         this.emitter = new EventEmitter();
         var _this = this;
         this._update = () => { _this.update(); };
@@ -186,6 +189,7 @@ class Entity
         }
         if(type=="house")
         {
+            this.health = 30;
             this.isBigHouse = false;
             this.radius = 20;
             this.attack = function(type)
@@ -207,6 +211,7 @@ class Entity
         }
         if(type=="cave")
         {
+            this.health = 50;
             this.resourcesLeft = 1000000;
             this.changeResources = function(amt)
             {
@@ -241,22 +246,40 @@ class Entity
         }
         if(this.state === EntityStates.ATTACKING)
         {
-            let target = this.target;
-            if(targetDistSqr > this.stopMoveAttackRadius ** 2)
+            let tradius = 0;
+            if(typeof this.target !== "undefined" && this.target != null && typeof this.target.radius === "number") tradius = this.target.radius;
+            if(targetDistSqr > (this.stopMoveAttackRadius + this.radius + tradius) ** 2)
             {
                 this.move();
             }
             else
             {
-                if(target != null)
+                if(this.target != null)
                 {
-                    target.health -= this.damage;
+                    if(this.target.health < 0)
+                    {
+                        this.target = null;
+                    }
+                    else
+                    {
+                        if(this.damageCooldown <= 0)
+                        {
+                            this.target.damageThis(this.damage);
+                            this.damageCooldown = this.damageCooldownMax;
+                        }
+                        else
+                        {
+                            this.damageCooldown--;
+                        }
+                    }
                 }
             }
         }
         else if(this.state === EntityStates.MOVING)
         {
-            if(targetDistSqr > this.stopMoveRadius ** 2)
+            let tradius = 0;
+            if(typeof this.target !== "undefined" && this.target != null && typeof this.target.radius === "number") tradius = this.target.radius;
+            if(targetDistSqr > (this.stopMoveRadius + this.radius + tradius) ** 2)
             {
                 this.move();
             }
@@ -290,6 +313,7 @@ class Entity
         this.emitter.emit("destroy");
         this.game.emitter.removeListener("update", this._update);
         this.emitter.removeAllListeners();
+        entityList.splice(entityList.indexOf(this), 1);
     }
     detectCollisions(checkX, checkY)
     {
@@ -305,6 +329,15 @@ class Entity
             }
         }
         return false;
+    }
+    damageThis(amount)
+    {
+        this.health -= amount;
+        if(this.health <= 0)
+        {
+            //we are dead
+            this.destroy();
+        }
     }
 }
 
@@ -405,6 +438,7 @@ module.exports = {
         requestId: requestId,
         Entity: Entity,
         emitter: emitter,
-        findEntityByID: findEntityByID
+        findEntityByID: findEntityByID,
+        removePlayer: function(player) { players.splice(players.indexOf(player), 1); }
     }
 };
