@@ -32,6 +32,7 @@ class Player
         this.game = game;
         this.emitter = new EventEmitter();
         this.ownedEntities = [];
+        this.resources = 0;
     }
     findOwnEntityById(id)
     {
@@ -160,6 +161,7 @@ class Entity
         this.moveSpeed = 1;
         this.stopMoveRadius = 1;
         this.stopMoveAttackRadius = 2;
+        this.stopMoveHarvestRadius = 20;
         this.damage = 1;
         this.emitter = new EventEmitter();
         var _this = this;
@@ -173,6 +175,7 @@ class Entity
             this.health = 3;
             this.damage = 1;
             this.radius = 5;
+            this.carrying = false;
         }
         if(type=="fighter")
         {
@@ -256,6 +259,29 @@ class Entity
             if(targetDistSqr > this.stopMoveRadius ** 2)
             {
                 this.move();
+            }
+        }
+        else if(this.state === EntityStates.HARVESTING)
+        {
+            if(!this.carrying)
+            {
+                if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
+                {
+                    this.move();
+                }
+                else
+                {
+                    this.carrying = true;
+                    this.target.changeResources(-1)
+                }
+            }
+            else
+            {
+                let minDistance = Infinity;
+                for(let i = 0; i < entityList.length; i++)
+                {
+                    
+                }
             }
         }
     }
