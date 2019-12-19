@@ -111,9 +111,12 @@ class Entity
         stroke(this.outlineColor[0], this.outlineColor[1], this.outlineColor[2]);
         strokeWeight(this.outlineWidth);
         ellipse(this.x, this.y, this.radius * 2, this.radius * 2);
-        fill(255,255,255,50);
-        noStroke();
-        ellipse(this.x,this.y,100,100);
+        if(this.isFriendly)
+        {
+            fill(255,255,255,50);
+            noStroke();
+            ellipse(this.x,this.y,100,100);
+        } 
     }
 }
 class Camera
