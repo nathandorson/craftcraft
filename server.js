@@ -96,7 +96,17 @@ class ConnectedClient
             //send create event to client
             // if(typeof send !== "function") send = broadcast;
             // send(JSON.stringify(getUnitCreationInformation(unit, player)));
-            if(sendToAll)
+            eList = game.getEntityList(1, true);
+            isVisible = false;
+            if(unit.player == cl.player){isVisible = true;}     
+            if(!isVisible){
+                for(let i = 0; i < eList.length; i++){
+                    if(eList[i].player == cl.player && Math.sqrt((eList[i].x - unit.x)^2 + (eList[1].y - unit.y)^2) < 100){
+                        isVisible = true;
+                    }
+                }
+            }
+            if(sendToAll || isVisible)
             {
                 for(let i = 0; i < clientList.length; i++)
                 {
@@ -109,12 +119,13 @@ class ConnectedClient
             else
             {
                 this.socket.send(JSON.stringify(getUnitCreationInformation(unit, this.player)));
+                
             }
         };
         this.updateUnit = (unit, send) => {
             //send updated information to client
             if(typeof send === "undefined") send = broadcast;
-            eList = getEntityList(1, true);
+            eList = game.getEntityList(1, true);
             isVisible = false;
             if(unit.player == cl.player){isVisible = true;}     
             if(!isVisible){
