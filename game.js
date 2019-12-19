@@ -439,7 +439,8 @@ module.exports = {
         requestPlayer: requestPlayer,
         getMap: function() { return map; },
         getSideLength: function() { return tileSideLength; },
-        getEntityList: function(player) { 
+        getEntityList: function(player, getAll) { 
+            if(getAll){return entityList;}     
             let ret = [];
             for(let i = 0; i < entityList.length; i++)
             {
