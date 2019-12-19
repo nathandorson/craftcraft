@@ -114,14 +114,28 @@ class ConnectedClient
         this.updateUnit = (unit, send) => {
             //send updated information to client
             if(typeof send === "undefined") send = broadcast;
-            send(JSON.stringify({
-                type: "updateEntity",
-                id: unit.id,
-                x: unit.x,
-                y: unit.y,
-                z: unit.z,
-                state: unit.state
-            }));
+            eList = getEntityList(1, true);
+            isVisible = false;
+            if(unit.player == cl.player){isVisible = true;}     
+            if(!isVisible){
+                for(let i = 0; i < eList.length; i++){
+                    if(eList[i].player == cl.player && Math.sqrt((eList[i].x - unit.x)^2 + (eList[1].y - unit.y)^2) < 100){
+                        isVisible = true;
+                    }
+                }
+            }
+            if(isVisible){
+                send(JSON.stringify({
+                    type: "updateEntity",
+                    id: unit.id,
+                    x: unit.x,
+                    y: unit.y,
+                    z: unit.z,
+                    state: unit.state
+                }));
+            } else {
+                this.destroyUnit(unit, send);
+            }
         };
         this.destroyUnit = (unit, send) => {
             //tell client unit is no more
@@ -153,7 +167,7 @@ class ConnectedClient
     }
     destroy()
     {
-        let entityList = game.getEntityList();
+        let entityList = game.getEntityList(cl.player, true);
         for(let i = entityList.length - 1; i >= 0; i--)
         {
             let entity = entityList[i];
