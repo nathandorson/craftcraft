@@ -111,6 +111,9 @@ class Entity
         stroke(this.outlineColor[0], this.outlineColor[1], this.outlineColor[2]);
         strokeWeight(this.outlineWidth);
         ellipse(this.x, this.y, this.radius * 2, this.radius * 2);
+        fill(255,255,255,50);
+        noStroke();
+        ellipse(this.x,this.y,100,100);
     }
 }
 class Camera
@@ -265,7 +268,7 @@ function setup()
     createCanvas(640,640);
     background(255);
     //connect("ws://10.229.222.123:5524");
-    connect("ws://10.229.220.95:5524");
+    connect("ws://10.229.220.217:5524");
 }
 
 var cam = new Camera();
