@@ -122,15 +122,15 @@ class ConnectedClient
                 
             }
         };
-        this.updateUnit = (unit, send, player) => {
+        this.updateUnit = (unit, send) => {
             //send updated information to client
             if(typeof send === "undefined") send = broadcast;
             let eList = game.getEntityList(1, true);
             let isVisible = false;
-            if(unit.player == player){isVisible = true;}     
+            if(unit.player == this.player){isVisible = true;}     
             if(!isVisible){
                 for(let i = 0; i < eList.length; i++){
-                    if(eList[i].player == player && Math.sqrt((eList[i].x - unit.x)^2 + (eList[1].y - unit.y)^2) < 100){
+                    if(eList[i].player == this.player && Math.sqrt((eList[i].x - unit.x)^2 + (eList[1].y - unit.y)^2) < 100){
                         isVisible = true;
                     }
                 }
