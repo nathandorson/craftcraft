@@ -136,21 +136,21 @@ class Camera
     {
         this.vx = 0;
         this.vy = 0;
-        if(mouseX > 600)
+        if(mouseX > width-100)
         {
-            this.vx = 1;
+            this.vx = 3*(mouseX+100-width)/100;
         }
         if(mouseX < 100)
         {
-            this.vx = -1;
+            this.vx = 3*(mouseX-100)/100;
         }
-        if(mouseY > 600)
+        if(mouseY > height-100)
         {
-            this.vy = 1;
+            this.vy = 3*(mouseY+100-height)/100;
         }
         if(mouseY < 100)
         {
-            this.vy = -1;
+            this.vy = 3*(mouseY-100)/100;
         }
         this.x += this.vx;
         this.y += this.vy;
@@ -201,10 +201,6 @@ function drawWorld()
     for(let i = 0; i < entityList.length; i++)
     {
         let ent = entityList[i];
-        /*a note for the writer of the selected entities code
-        that used to be here, probably nate, you used 'i' as the
-        variable name for the for loop inside of the entityList
-        for loop*/
         ent.draw();
     }
     for(let i = 0; i < selectedEntities.length; i++)
