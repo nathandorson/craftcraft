@@ -124,10 +124,10 @@ class Camera
         this.panSpeedMultiplier = 12;
         this.maxPanSpeed = 9;
         this.panTriggerWidth = 100;
-        this.minx = -width / 2;
-        this.miny = -height / 2;
-        this.maxx = width / 2;
-        this.maxy = height / 2;
+        this.minx = -mapSideLength / 2;
+        this.miny = -mapSideLength / 2;
+        this.maxx = mapSideLength / 2;
+        this.maxy = mapSideLength / 2;
     }
     zoom()
     {
@@ -179,7 +179,7 @@ class Camera
 }
 var entityList = [];
 var selectedEntities = [];
-var mapSideLength = 512;
+var mapSideLength = 1024;
 var tileSideLength = 64;
 var worldMap = [];
 var shadowSurface = null;
