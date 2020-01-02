@@ -122,7 +122,7 @@ class ConnectedClient
                 
             }
         };
-        this.updateUnit = (unit, send) => {
+        this.updateUnit = (unit, send) => { //only update if friendly unit or close to friendly unit
             //send updated information to client
             if(typeof send === "undefined") send = broadcast;
             let eList = game.getEntityList(1, true);
