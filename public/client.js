@@ -111,12 +111,6 @@ class Entity
         stroke(this.outlineColor[0], this.outlineColor[1], this.outlineColor[2]);
         strokeWeight(this.outlineWidth);
         ellipse(this.x, this.y, this.radius * 2, this.radius * 2);
-        if(this.isFriendly)
-        {
-            fill(255,255,255,50);
-            noStroke();
-            ellipse(this.x,this.y,100,100);
-        } 
     }
 }
 class Camera
@@ -127,39 +121,60 @@ class Camera
         this.y = 0;
         this.vx = 0;
         this.vy = 0;
+        this.panSpeedMultiplier = 12;
+        this.maxPanSpeed = 9;
+        this.panTriggerWidth = 100;
+        this.minx = -width / 2;
+        this.miny = -height / 2;
+        this.maxx = width / 2;
+        this.maxy = height / 2;
     }
     zoom()
     {
-        
+        //todo make camera zoomable
     }
     pan()
     {
         this.vx = 0;
         this.vy = 0;
-        if(mouseX > width-100)
+        if(mouseX > width - this.panTriggerWidth)
         {
-            this.vx = 3*(mouseX+100-width)/100;
+            this.vx = this.panSpeedMultiplier * (mouseX + this.panTriggerWidth - width) / this.panTriggerWidth;
         }
-        if(mouseX < 100)
+        else if(mouseX < this.panTriggerWidth)
         {
-            this.vx = 3*(mouseX-100)/100;
+            this.vx = this.panSpeedMultiplier * (mouseX - this.panTriggerWidth) / this.panTriggerWidth;
         }
-        if(mouseY > height-100)
+        if(mouseY > height - this.panTriggerWidth)
         {
-            this.vy = 3*(mouseY+100-height)/100;
+            this.vy = this.panSpeedMultiplier * (mouseY + this.panTriggerWidth - height) / this.panTriggerWidth;
         }
-        if(mouseY < 100)
+        else if(mouseY < this.panTriggerWidth)
         {
-            this.vy = 3*(mouseY-100)/100;
+            this.vy = this.panSpeedMultiplier * (mouseY - this.panTriggerWidth) / this.panTriggerWidth;
+        }
+        let sgn = Math.sign(this.vx);
+        if(this.vx * sgn > this.maxPanSpeed)
+        {
+            this.vx = this.maxPanSpeed * sgn;
+        }
+        sgn = Math.sign(this.vy);
+        if(this.vy * sgn > this.maxPanSpeed)
+        {
+            this.vy = this.maxPanSpeed * sgn;
         }
         this.x += this.vx;
         this.y += this.vy;
+        if(this.x < this.minx) this.x = this.minx;
+        if(this.y < this.miny) this.y = this.miny;
+        if(this.x > this.maxx) this.x = this.maxx;
+        if(this.y > this.maxy) this.y = this.maxy;
     }
     update()
     {
         this.pan();
         this.zoom();
-        translate(-this.x,-this.y);
+        translate(-this.x, -this.y);
     }
 }
 var entityList = [];
@@ -167,12 +182,13 @@ var selectedEntities = [];
 var mapSideLength = 512;
 var tileSideLength = 64;
 var worldMap = [];
-function findEntityByID(id,remove=false)
+var shadowSurface = null;
+function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
     {
-        entity = entityList[i];
-        if(entity.id==id)
+        let entity = entityList[i];
+        if(entity.id == id)
         {
             if(remove)
             {
@@ -186,22 +202,36 @@ function findEntityByID(id,remove=false)
 
 function drawWorld()
 {
+    if(shadowSurface == null || shadowSurface.width != width || shadowSurface.height != height)
+    {
+        shadowSurface = createGraphics(width, height);
+    }
     stroke(0);
     for(let r = 0; r < worldMap.length; r++)
     {
         for(let c = 0; c < worldMap[r].length; c++)
         {
-            tile = worldMap[r][c];
-            type = tile.type;
-            height = tile.height;
+            let tile = worldMap[r][c];
+            let type = tile.type;
+            let height = tile.height;
             fill(0,10*height/tileSideLength,0);
             rect(r*tileSideLength,c*tileSideLength,tileSideLength,tileSideLength);
         }
     }
+    shadowSurface.blendMode(shadowSurface.BLEND);
+    shadowSurface.clear();
+    shadowSurface.background(0, 127);
+    shadowSurface.blendMode(shadowSurface.REMOVE);
     for(let i = 0; i < entityList.length; i++)
     {
         let ent = entityList[i];
         ent.draw();
+        if(ent.isFriendly)
+        {
+            shadowSurface.fill(255, 255);
+            shadowSurface.noStroke();
+            shadowSurface.ellipse(ent.x, ent.y, 100, 100);
+        }
     }
     for(let i = 0; i < selectedEntities.length; i++)
     {
@@ -212,6 +242,7 @@ function drawWorld()
         ellipse(ent.x, ent.y, ent.radius * 2, ent.radius * 2);
         strokeWeight(1);
     }
+    image(shadowSurface, 0, 0);
 }
 var connected = false, ws = null;
 function connect(target)
@@ -266,15 +297,16 @@ function setup()
 {
     createCanvas(640,640);
     background(255);
-    //connect("ws://10.229.222.123:5524");
-    connect("ws://10.229.220.217:5524");
+    cam = new Camera();
+    connect(startupConnectionAddress);
 }
 
-var cam = new Camera();
+var cam;
 
 function draw()
 {
     background(255);
+    push();
     cam.update();
     drawWorld();
     fill(0,0,255,100)
@@ -282,10 +314,18 @@ function draw()
     {
         rect(selectionXi,selectionYi,mouseX+cam.x-selectionXi,mouseY+cam.y-selectionYi);
     }
+    pop();
     if(entityPrimed)
     {
+        var messageText = "Press 1 for a house, 2 for a fighter, 3 for a worker.";
+        let borderPadding = 4;
+        let twidth = textWidth(messageText);
+        let theight = textAscent() + textDescent();
+        fill(0);
+        rect(20 - borderPadding, 20 - borderPadding, twidth + borderPadding, theight + borderPadding);
         fill(255);
-        text("Press 1 for a house, 2 for a fighter, 3 for a worker.",20,20);
+        textAlign(LEFT, TOP);
+        text(messageText, 20, 20);
     }
 }
 
