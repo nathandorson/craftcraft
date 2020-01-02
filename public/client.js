@@ -111,12 +111,6 @@ class Entity
         stroke(this.outlineColor[0], this.outlineColor[1], this.outlineColor[2]);
         strokeWeight(this.outlineWidth);
         ellipse(this.x, this.y, this.radius * 2, this.radius * 2);
-        if(this.isFriendly)
-        {
-            fill(255,255,255,50);
-            noStroke();
-            ellipse(this.x,this.y,100,100);
-        } 
     }
 }
 class Camera
@@ -188,6 +182,7 @@ var selectedEntities = [];
 var mapSideLength = 512;
 var tileSideLength = 64;
 var worldMap = [];
+var shadowSurface = null;
 function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
@@ -207,6 +202,10 @@ function findEntityByID(id, remove=false)
 
 function drawWorld()
 {
+    if(shadowSurface == null || shadowSurface.width != width || shadowSurface.height != height)
+    {
+        shadowSurface = createGraphics(width, height);
+    }
     stroke(0);
     for(let r = 0; r < worldMap.length; r++)
     {
@@ -219,10 +218,20 @@ function drawWorld()
             rect(r*tileSideLength,c*tileSideLength,tileSideLength,tileSideLength);
         }
     }
+    shadowSurface.blendMode(shadowSurface.BLEND);
+    shadowSurface.clear();
+    shadowSurface.background(0, 127);
+    shadowSurface.blendMode(shadowSurface.REMOVE);
     for(let i = 0; i < entityList.length; i++)
     {
         let ent = entityList[i];
         ent.draw();
+        if(ent.isFriendly)
+        {
+            shadowSurface.fill(255, 255);
+            shadowSurface.noStroke();
+            shadowSurface.ellipse(ent.x, ent.y, 100, 100);
+        }
     }
     for(let i = 0; i < selectedEntities.length; i++)
     {
@@ -233,6 +242,7 @@ function drawWorld()
         ellipse(ent.x, ent.y, ent.radius * 2, ent.radius * 2);
         strokeWeight(1);
     }
+    image(shadowSurface, 0, 0);
 }
 var connected = false, ws = null;
 function connect(target)
