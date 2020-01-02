@@ -48,7 +48,7 @@ class Player
             _this.emitter.emit("destroy", entity);
         });
         entity.emitter.on("update", () => {
-            _this.emitter.emit("update", entity);
+            _this.emitter.emit("update", entity, this);
         });
     }
     move(id, x, y)
