@@ -1,5 +1,6 @@
 "use strict";
 var WebSocket = require("ws");
+var Entity = require("./entity.js");
 
 var wsServer;
 var game;
@@ -60,8 +61,18 @@ var receivedActions = {
         let y = data.y;
         let entityType = data.entityType;
         let id = game.requestId();
-        let z = game.getMap()[Math.floor(x / game.getSideLength())][Math.floor(y / game.getSideLength())].height;
-        let entity = new game.Entity(entityType, id, x, y, z, game, cl.player);
+        let cellx = Math.floor(x / game.tileSideLength);
+        let celly = Math.floor(y / game.tileSideLength);
+        let z;
+        if(cellx > game.map.length || cellx < 0 || celly > game.map[cellx].length || celly < 0)
+        {
+            z = 0;
+        }
+        else
+        {
+            z = game.map[cellx][celly].height;
+        }
+        let entity = new Entity(entityType, id, x, y, z, game, cl.player);
         cl.player.addEntity(entity);
     }
 };
@@ -173,12 +184,12 @@ class ConnectedClient
     {
         this.socket.send(JSON.stringify({
             type: "sendMap",
-            worldMap: game.getMap()
+            worldMap: game.map
         }));
     }
     destroy()
     {
-        let entityList = game.getEntityList(cl.player, true);
+        let entityList = game.getEntityList(this.player, true);
         for(let i = entityList.length - 1; i >= 0; i--)
         {
             let entity = entityList[i];
