@@ -130,7 +130,7 @@ class Camera
     }
     zoom()
     {
-        
+        //todo make camera zoomable
     }
     pan()
     {
@@ -144,7 +144,7 @@ class Camera
         {
             this.vx = 3*(mouseX-100)/100;
         }
-        if(mouseY > height-100)
+        if(mouseY > height-100) //todo: panning down does not work here
         {
             this.vy = 3*(mouseY+100-height)/100;
         }
