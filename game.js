@@ -127,7 +127,7 @@ class GameBoard
         this.players = [];
         this.maxPlayers = 2;
         this.highestId = 0;
-        this.mapSideLength = 10 * 64;
+        this.mapSideLength = 20 * 64;
         this.tileSideLength = 64;
         this.generateMap();
     }
