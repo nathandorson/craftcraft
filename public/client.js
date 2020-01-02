@@ -360,7 +360,7 @@ function sendMove(x,y)
         let ent = entityList[i];
         if(!ent.isFriendly)
         {
-            let dist = Math.sqrt((mouseX-ent.x)**2 + (mouseY-ent.y)**2);
+            let dist = Math.sqrt((x-ent.x)**2 + (y-ent.y)**2);
             if(dist < DEFAULTRADIUS)
             {
                 targetId = ent.id;
