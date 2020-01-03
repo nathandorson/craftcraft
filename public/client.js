@@ -185,7 +185,8 @@ var mapSideLength = 1024;
 var tileSideLength = 64;
 var worldMap = [];
 var shadowSurface = null;
-var resoruces = 0;
+var lightDiameter = 200;
+var resources = 0;
 function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
@@ -233,7 +234,7 @@ function drawWorld()
         {
             shadowSurface.fill(255, 255);
             shadowSurface.noStroke();
-            shadowSurface.ellipse(ent.x, ent.y, 100, 100);
+            shadowSurface.ellipse(ent.x, ent.y, lightDiameter, lightDiameter);
         }
     }
     for(let i = 0; i < selectedEntities.length; i++)
@@ -284,9 +285,12 @@ function connect(target)
         {
             id = data.id;
             let ent = findEntityByID(id);
-            ent.x = data.x;
-            ent.y = data.y;
-            ent.z = data.z;
+            if(ent != null)
+            {
+                ent.x = data.x;
+                ent.y = data.y;
+                ent.z = data.z;
+            }
         }
         if(data.type == "destroyEntity")
         {
@@ -295,7 +299,7 @@ function connect(target)
         }
         if(data.type = "updateResources")
         {
-            resoruces += data.ammount;
+            resources += data.ammount;
         }
     }
 }
@@ -319,7 +323,7 @@ function draw()
     fill(0,0,255,100)
     if(mouseIsPressed)
     {
-        rect(selectionXi,selectionYi,mouseX+cam.x-selectionXi,mouseY+cam.y-selectionYi);
+        rect(selectionXi,selectionYi,mouseX/cam.scaleLevel+cam.x-selectionXi,mouseY/cam.scaleLevel+cam.y-selectionYi);
     }
     pop();
     if(entityPrimed)
@@ -438,16 +442,16 @@ function mousePressed()
 {
     if(mouseButton == LEFT)
     {
-        selectionXi = mouseX+cam.x;
-        selectionYi = mouseY+cam.y;
+        selectionXi = mouseX/cam.scaleLevel+cam.x;
+        selectionYi = mouseY/cam.scaleLevel+cam.y;
     }
 }
 function mouseReleased()
 {
     if(mouseButton == LEFT)
     {
-        selectionXf = mouseX+cam.x;
-        selectionYf = mouseY+cam.y;
+        selectionXf = mouseX/cam.scaleLevel+cam.x;
+        selectionYf = mouseY/cam.scaleLevel+cam.y;
         selectEntities(selectionXi,selectionYi,selectionXf,selectionYf);
     }
 }
@@ -489,10 +493,10 @@ function keyPressed()
     }
     if(key=='c')
     {
-        prepareEntity(mouseX+cam.x, mouseY+cam.y);
+        prepareEntity(mouseX/cam.scaleLevel+cam.x, mouseY/cam.scaleLevel+cam.y);
     }
     if(key=='s')
     {
-        sendMove(mouseX+cam.x,mouseY+cam.y);
+        sendMove(mouseX/cam.scaleLevel+cam.x,mouseY/cam.scaleLevel+cam.y);
     }
 }

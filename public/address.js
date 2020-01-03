@@ -1,1 +1,1 @@
-var startupConnectionAddress = "ws://10.229.222.104:5524";
+var startupConnectionAddress = "ws://10.229.222.108:5524";
