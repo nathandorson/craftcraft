@@ -50,10 +50,10 @@ var receivedActions = {
     },
     join: function(cl, data) {
         cl.setPlayer(game.requestPlayer(game));
-        let entityList = game.getEntityList(cl.player);
+        let entityList = game.getEntityList(cl.player, false);
         for(let i = 0; i < entityList.length; i++)
         {
-            cl.createUnit(entityList[i], false, null);
+            cl.createUnit(entityList[i], false, cl.player);
         }
     },
     createUnit: function(cl, data) {
@@ -64,7 +64,7 @@ var receivedActions = {
         let cellx = Math.floor(x / game.tileSideLength);
         let celly = Math.floor(y / game.tileSideLength);
         let z;
-        if(cellx > game.map.length || cellx < 0 || celly > game.map[cellx].length || celly < 0)
+        if(cellx >= game.map.length || cellx < 0 || celly >= game.map[cellx].length || celly < 0)
         {
             z = 0;
         }
@@ -107,17 +107,7 @@ class ConnectedClient
             //send create event to client
             // if(typeof send !== "function") send = broadcast;
             // send(JSON.stringify(getUnitCreationInformation(unit, player)));
-            let eList = game.getEntityList(1, true);
-            let isVisible = false;
-            if(unit.owner == player){isVisible = true;}     
-            if(!isVisible){
-                for(let i = 0; i < eList.length; i++){
-                    if(eList[i].owner == player && Math.sqrt((eList[i].x - unit.x)^2 + (eList[1].y - unit.y)^2) < 100){
-                        isVisible = true;
-                    }
-                }
-            }
-            if(sendToAll || isVisible)
+            if(sendToAll)
             {
                 for(let i = 0; i < clientList.length; i++)
                 {
@@ -136,36 +126,35 @@ class ConnectedClient
         this.updateUnit = (unit, send, player) => { //only update if friendly unit or close to friendly unit
             //send updated information to client
             if(typeof send !== "function") send = broadcast;
-            let eList = game.getEntityList(1, true);
-            let isVisible = false;
-            if(unit.owner == player){isVisible = true;}     
-            if(!isVisible){
-                for(let i = 0; i < eList.length; i++){
-                    if(eList[i].owner == this.player && Math.sqrt((eList[i].x - unit.x)^2 + (eList[i].y - unit.y)^2) < 100){
-                        isVisible = true;
-                    }
+            send(JSON.stringify({
+                type: "updateEntity",
+                id: unit.id,
+                x: unit.x,
+                y: unit.y,
+                z: unit.z,
+                state: unit.state
+            }));
+        };
+        this.destroyUnit = (unit, sendToAll) => {
+            //tell client unit is no more
+            if(sendToAll)
+            {
+                for(let i = 0; i < clientList.length; i++)
+                {
+                    let client = clientList[i];
+                    client.socket.send(JSON.stringify({
+                        type: "destroyEntity",
+                        id: unit.id
+                    }));
                 }
             }
-            if(isVisible){
-                send(JSON.stringify({
-                    type: "updateEntity",
-                    id: unit.id,
-                    x: unit.x,
-                    y: unit.y,
-                    z: unit.z,
-                    state: unit.state
+            else
+            {
+                this.socket.send(JSON.stringify({
+                    type: "destroyEntity",
+                    id: unit.id
                 }));
-            } else {
-                this.destroyUnit(unit, send);
             }
-        };
-        this.destroyUnit = (unit, send) => {
-            //tell client unit is no more
-            if(typeof send === "undefined") send = broadcast;
-            send(JSON.stringify({
-                type: "destroyEntity",
-                id: unit.id
-            }));
         };
     }
     update()
@@ -175,7 +164,11 @@ class ConnectedClient
     setPlayer(player)
     {
         this.player = player;
-        player.emitter.on("create", (unit) => { this.createUnit(unit, true, player); });
+        player.emitter.on("create", (unit, sendToAll, tplayer) => {
+            if(typeof tplayer === "undefined") tplayer = player;
+            if(typeof sendToAll === "undefined") sendToAll = false;
+            this.createUnit(unit, sendToAll, tplayer);
+        });
         player.emitter.on("update", this.updateUnit);
         player.emitter.on("destroy", this.destroyUnit);
         this.sendWorld();
