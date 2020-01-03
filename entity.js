@@ -32,6 +32,7 @@ class Entity
             this.damage = 1;
             this.radius = 5;
             this.carrying = false;
+            this.targetHouse = null;
         }
         if(type=="fighter")
         {
@@ -160,11 +161,29 @@ class Entity
             }
             else
             {
-                let minDistance = Infinity;
-                for(let i = 0; i < this.game.entityList.length; i++)
-                {
-                    
+                if(this.targetHouse == null){
+                    let minDistance = Infinity;
+                    for(let i = 0; i < this.game.entityList.length; i++)
+                    {
+                        let ent = entityList[i];
+                        if(ent.type == "house" && ent.owner == this.owner && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
+                        {
+                            this.targetHouse = ent;
+                        }
+                    }
                 }
+                let targetCave = this.target;
+                this.target = this.targetHouse;
+                if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
+                {
+                    this.move();
+                }
+                else
+                {
+                    this.owner.resources += 1
+                    this.carrying = false;
+                }
+                this.target = targetCave;
             }
         }
     }

@@ -167,6 +167,14 @@ class ConnectedClient
                 id: unit.id
             }));
         };
+        this.updateResources = (amt, send) => {
+            //tell client to update resource amount
+            if(typeof send === "undefined") send = broadcast;
+            send(JSON.stringify({
+                type: "updateResources",
+                ammount: amt
+            }));
+        }
     }
     update()
     {
