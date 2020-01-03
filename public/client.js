@@ -121,6 +121,7 @@ class Camera
         this.y = 0;
         this.vx = 0;
         this.vy = 0;
+        this.scaleLevel = 1;
         this.panSpeedMultiplier = 12;
         this.maxPanSpeed = 9;
         this.panTriggerWidth = 100;
@@ -131,7 +132,7 @@ class Camera
     }
     zoom()
     {
-        //todo make camera zoomable
+        scale(this.scaleLevel);
     }
     pan()
     {
@@ -458,6 +459,14 @@ function keyPressed()
         {
             createEntity(entCreationX,entCreationY,"worker");
         }
+    }
+    if(keyCode===UP_ARROW)
+    {
+        cam.scaleLevel = cam.scaleLevel + 0.1;
+    }
+    if(keyCode===DOWN_ARROW)
+    {
+        cam.scaleLevel = cam.scaleLevel - 0.1;
     }
     if(key=='a'||key=='A')
     {
