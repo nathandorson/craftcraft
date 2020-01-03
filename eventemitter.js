@@ -48,6 +48,10 @@ class EventEmitter
             }
         }
     }
+    removeAllListeners()
+    {
+        this.events = {};
+    }
 }
 try
 {

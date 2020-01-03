@@ -122,17 +122,18 @@ class Camera
         this.y = 0;
         this.vx = 0;
         this.vy = 0;
+        this.scaleLevel = 1;
         this.panSpeedMultiplier = 12;
         this.maxPanSpeed = 9;
         this.panTriggerWidth = 100;
-        this.minx = -width / 2;
-        this.miny = -height / 2;
-        this.maxx = width / 2;
-        this.maxy = height / 2;
+        this.minx = -mapSideLength / 2;
+        this.miny = -mapSideLength / 2;
+        this.maxx = mapSideLength / 2;
+        this.maxy = mapSideLength / 2;
     }
     zoom()
     {
-        //todo make camera zoomable
+        scale(this.scaleLevel);
     }
     pan()
     {
@@ -180,7 +181,7 @@ class Camera
 }
 var entityList = [];
 var selectedEntities = [];
-var mapSideLength = 512;
+var mapSideLength = 1024;
 var tileSideLength = 64;
 var worldMap = [];
 var shadowSurface = null;
@@ -375,7 +376,7 @@ function sendMove(x,y)
         let ent = entityList[i];
         if(!ent.isFriendly)
         {
-            let dist = Math.sqrt((mouseX-ent.x)**2 + (mouseY-ent.y)**2);
+            let dist = Math.sqrt((x-ent.x)**2 + (y-ent.y)**2);
             if(dist < DEFAULTRADIUS)
             {
                 targetId = ent.id;
@@ -473,6 +474,14 @@ function keyPressed()
         {
             createEntity(entCreationX,entCreationY,"worker");
         }
+    }
+    if(keyCode===UP_ARROW)
+    {
+        cam.scaleLevel = cam.scaleLevel + 0.1;
+    }
+    if(keyCode===DOWN_ARROW)
+    {
+        cam.scaleLevel = cam.scaleLevel - 0.1;
     }
     if(key=='a'||key=='A')
     {
