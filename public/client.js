@@ -186,7 +186,7 @@ var tileSideLength = 64;
 var worldMap = [];
 var shadowSurface = null;
 var lightDiameter = 200;
-var resoruces = 0;
+var resources = 0;
 function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)

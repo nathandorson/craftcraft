@@ -13,7 +13,7 @@ function distanceTo(a, b)
 {
     return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
 }
-
+var fogViewDistance = 100;
 class Player
 {
     constructor(game)
@@ -22,6 +22,10 @@ class Player
         this.emitter = new EventEmitter();
         this.ownedEntities = [];
         this.resources = 0;
+        this.visibleEnemies = [];
+        var _this = this;
+        this._update = () => { _this.update(); };
+        this.game.emitter.on("update", this._update);
     }
     findOwnEntityById(id)
     {
@@ -42,10 +46,10 @@ class Player
             this.ownedEntities.push(entity);
         }
         this.game.entityList.push(entity);
-        this.emitter.emit("create", entity);
+        this.emitter.emit("create", entity, false);
         var _this = this;
         entity.emitter.on("destroy", () => {
-            _this.emitter.emit("destroy", entity);
+            _this.emitter.emit("destroy", entity, true);
         });
         entity.emitter.on("update", () => {
             _this.emitter.emit("update", entity);
@@ -116,6 +120,70 @@ class Player
             entity.target = building;
         }
     }
+    updateVisibleEnemies()
+    {
+        let newVisibleEnemies = [];
+        let entityList = this.game.getEntityList(this, true);
+        for(let i = 0; i < this.ownedEntities.length; i++)
+        {
+            let entity = this.ownedEntities[i];
+            for(let j = 0; j < entityList.length; j++)
+            {
+                let testEntity = entityList[j];
+                if(itemInArray(newVisibleEnemies, testEntity) || testEntity.owner == this)
+                {
+                    continue;
+                }
+                //we have an entity that does not have us as the owner and is not already found
+                //find if it is within distance
+                if((entity.x - testEntity.x)**2 + (entity.y - testEntity.y)**2 < fogViewDistance ** 2)
+                {
+                    //it is within distance
+                    newVisibleEnemies.push(testEntity);
+                }
+            }
+        }
+        //find additions and removals
+        let additions = getArrayChanges(newVisibleEnemies, this.visibleEnemies);
+        let removals = getArrayChanges(this.visibleEnemies, newVisibleEnemies);
+        this.visibleEnemies = newVisibleEnemies;
+        //tell server those changes
+        for(let i = 0; i < additions.length; i++)
+        {
+            this.emitter.emit("create", additions[i], false, this);
+        }
+        for(let i = 0; i < removals.length; i++)
+        {
+            this.emitter.emit("destroy", removals[i], false); //TODO: use separate commands that aren't "create" and "destroy"
+        }
+    }
+    update()
+    {
+        this.updateVisibleEnemies();
+    }
+}
+function itemInArray(arr, item)
+{
+    for(let i = 0; i < arr.length; i++)
+    {
+        if(arr[i] == item)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+function getArrayChanges(a, b)
+{
+    let changes = [];
+    for(let i = 0; i < a.length; i++)
+    {
+        if(!itemInArray(b, a[i]))
+        {
+            changes.push(a[i]);
+        }
+    }
+    return changes;
 }
 
 class GameBoard
@@ -127,14 +195,14 @@ class GameBoard
         this.players = [];
         this.maxPlayers = 2;
         this.highestId = 0;
-        this.mapSideLength = 20 * 64;
         this.tileSideLength = 64;
+        this.mapSideLength = 20 * this.tileSideLength;
         this.generateMap();
-        for(let i = 0; i < 3; i++){
-            let x = Math.random() * 1024;
-            let y = Math.random() * 1024;
-            Player.addEntity("cave", i, x, y, 1, game, -1)
-        }
+        // for(let i = 0; i < 3; i++){
+        //     let x = Math.random() * 1024;
+        //     let y = Math.random() * 1024;
+        //     Player.addEntity("cave", i, x, y, 1, game, -1)
+        // }
     }
     generateMap()
     {
@@ -200,7 +268,7 @@ class GameBoard
             {
                 for(let z = 0; z < this.entityList.length; z++)
                 {
-                    if(this.entityList[z].player == player && distanceTo(this.entityList[z], this.entityList[i]) < 100){
+                    if(this.entityList[z].player == player && distanceTo(this.entityList[z], this.entityList[i]) < fogViewDistance){
                         ret.push(this.entityList[i])
                         break;
                     }
