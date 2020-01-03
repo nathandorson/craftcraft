@@ -184,6 +184,7 @@ var mapSideLength = 1024;
 var tileSideLength = 64;
 var worldMap = [];
 var shadowSurface = null;
+var lightDiameter = 200;
 function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
@@ -231,7 +232,7 @@ function drawWorld()
         {
             shadowSurface.fill(255, 255);
             shadowSurface.noStroke();
-            shadowSurface.ellipse(ent.x, ent.y, 100, 100);
+            shadowSurface.ellipse(ent.x, ent.y, lightDiameter, lightDiameter);
         }
     }
     for(let i = 0; i < selectedEntities.length; i++)
