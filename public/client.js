@@ -285,9 +285,12 @@ function connect(target)
         {
             id = data.id;
             let ent = findEntityByID(id);
-            ent.x = data.x;
-            ent.y = data.y;
-            ent.z = data.z;
+            if(ent != null)
+            {
+                ent.x = data.x;
+                ent.y = data.y;
+                ent.z = data.z;
+            }
         }
         if(data.type == "destroyEntity")
         {
