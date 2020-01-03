@@ -151,12 +151,10 @@ class Player
         for(let i = 0; i < additions.length; i++)
         {
             this.emitter.emit("create", additions[i], false, this);
-            console.log("hi");
         }
         for(let i = 0; i < removals.length; i++)
         {
             this.emitter.emit("destroy", removals[i], false); //TODO: use separate commands that aren't "create" and "destroy"
-            console.log("hi");
         }
     }
     update()
@@ -200,11 +198,11 @@ class GameBoard
         this.tileSideLength = 64;
         this.mapSideLength = 20 * this.tileSideLength;
         this.generateMap();
-        for(let i = 0; i < 3; i++){
-            let x = Math.random() * 1024;
-            let y = Math.random() * 1024;
-            Player.addEntity("cave", i, x, y, 1, game, -1)
-        }
+        // for(let i = 0; i < 3; i++){
+        //     let x = Math.random() * 1024;
+        //     let y = Math.random() * 1024;
+        //     Player.addEntity("cave", i, x, y, 1, game, -1)
+        // }
     }
     generateMap()
     {
