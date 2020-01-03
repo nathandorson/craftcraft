@@ -52,7 +52,7 @@ class Player
             _this.emitter.emit("destroy", entity, true);
         });
         entity.emitter.on("update", () => {
-            _this.emitter.emit("update", entity, this);
+            _this.emitter.emit("update", entity);
         });
     }
     move(id, x, y)
@@ -198,8 +198,13 @@ class GameBoard
         this.maxPlayers = 2;
         this.highestId = 0;
         this.tileSideLength = 64;
-        this.mapSideLength = 10 * this.tileSideLength;
+        this.mapSideLength = 20 * this.tileSideLength;
         this.generateMap();
+        for(let i = 0; i < 3; i++){
+            let x = Math.random() * 1024;
+            let y = Math.random() * 1024;
+            Player.addEntity("cave", i, x, y, 1, game, -1)
+        }
     }
     generateMap()
     {
