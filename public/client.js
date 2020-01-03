@@ -313,7 +313,7 @@ function draw()
     fill(0,0,255,100)
     if(mouseIsPressed)
     {
-        rect(selectionXi,selectionYi,mouseX+cam.x-selectionXi,mouseY+cam.y-selectionYi);
+        rect(selectionXi,selectionYi,mouseX/cam.scaleLevel+cam.x-selectionXi,mouseY/cam.scaleLevel+cam.y-selectionYi);
     }
     pop();
     if(entityPrimed)
@@ -423,16 +423,16 @@ function mousePressed()
 {
     if(mouseButton == LEFT)
     {
-        selectionXi = mouseX+cam.x;
-        selectionYi = mouseY+cam.y;
+        selectionXi = mouseX/cam.scaleLevel+cam.x;
+        selectionYi = mouseY/cam.scaleLevel+cam.y;
     }
 }
 function mouseReleased()
 {
     if(mouseButton == LEFT)
     {
-        selectionXf = mouseX+cam.x;
-        selectionYf = mouseY+cam.y;
+        selectionXf = mouseX/cam.scaleLevel+cam.x;
+        selectionYf = mouseY/cam.scaleLevel+cam.y;
         selectEntities(selectionXi,selectionYi,selectionXf,selectionYf);
     }
 }
@@ -474,10 +474,10 @@ function keyPressed()
     }
     if(key=='c')
     {
-        prepareEntity(mouseX+cam.x, mouseY+cam.y);
+        prepareEntity(mouseX/cam.scaleLevel+cam.x, mouseY/cam.scaleLevel+cam.y);
     }
     if(key=='s')
     {
-        sendMove(mouseX+cam.x,mouseY+cam.y);
+        sendMove(mouseX/cam.scaleLevel+cam.x,mouseY/cam.scaleLevel+cam.y);
     }
 }
