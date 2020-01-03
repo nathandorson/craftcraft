@@ -133,7 +133,8 @@ class GameBoard
         for(let i = 0; i < 3; i++){
             let x = Math.random() * 1024;
             let y = Math.random() * 1024;
-            Player.addEntity("cave", i, x, y, 1, game, -1)
+            let newCave = new Entity("cave", i, x, y, 1, game, -1);
+            entityList.append(newCave);
         }
     }
     generateMap()
