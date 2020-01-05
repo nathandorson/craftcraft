@@ -186,6 +186,95 @@ function getArrayChanges(a, b)
     return changes;
 }
 
+//http://devmag.org.za/2009/04/25/perlin-noise/
+function generateWhiteNoise(wid, hgt)
+{
+    let noise = [];
+    for(let i = 0; i < wid; i++)
+    {
+        let row = [];
+        for(let j = 0; j < hgt; j++)
+        {
+            row.push(Math.random());
+        }
+        noise.push(row);
+    }
+    return noise;
+}
+function interpolateValues(x0, x1, alph) //float, float, float, returns float
+{
+    return x0 * (1 - alph) + alph * x1;
+}
+function generateSmoothNoise(baseNoise /*2d float array*/, octave /*int*/)
+{
+    let wid = baseNoise.length;
+    let hgt = baseNoise[0].length;
+    let smoothNoise = [];
+    let samplePeriod = 1 << octave;
+    let sampleFrequency = 1 / samplePeriod; //float
+    for(let i = 0; i < wid; i++)
+    {
+        let sample_i0 = parseInt(i / samplePeriod) * samplePeriod;
+        let sample_i1 = (sample_i0 + samplePeriod) % wid;
+        let horizontal_blend = (i - sample_i0) * sampleFrequency; //float
+        let row = [];
+        for(let j = 0; j < hgt; j++)
+        {
+            let sample_j0 = parseInt(j / samplePeriod) * samplePeriod;
+            let sample_j1 = (sample_j0 + samplePeriod) % hgt;
+            let vertical_blend = (j - sample_j0) * sampleFrequency; //float
+            let top = interpolateValues(baseNoise[sample_i0][sample_j0], baseNoise[sample_i1][sample_j0], horizontal_blend);
+            let bottom = interpolateValues(baseNoise[sample_i0][sample_j1], baseNoise[sample_i1][sample_j1], horizontal_blend);
+            row.push(interpolateValues(top, bottom, vertical_blend));
+        }
+        smoothNoise.push(row);
+    }
+    return smoothNoise;
+}
+function generatePerlinNoise(baseNoise /*2d float array*/, octaveCount /*int*/)
+{
+    let wid = baseNoise.length;
+    let hgt = baseNoise[0].length;
+    let smoothNoise = []; //3d array [octaveCount, wid, hgt]
+    let persistance = 0.5;
+    for(let i = 0; i < octaveCount; i++)
+    {
+        smoothNoise.push(generateSmoothNoise(baseNoise, i));
+    }
+    let perlinNoise = []; //2d float array
+    for(let i = 0; i < wid; i++)
+    {
+        let row = [];
+        for(let j = 0; j < hgt; j++)
+        {
+            row.push(0);
+        }
+        perlinNoise.push(row);
+    }
+    let amplitude = 1; //float
+    let totalAmplitude = 0; //float
+    for(let octave = octaveCount - 1; octave >= 0; octave--)
+    {
+        amplitude *= persistance;
+        totalAmplitude += amplitude;
+        for(let i = 0; i < wid; i++)
+        {
+            for(let j = 0; j < hgt; j++)
+            {
+                perlinNoise[i][j] += smoothNoise[octave][i][j] * amplitude;
+            }
+        }
+    }
+    for(let i = 0; i < wid; i++)
+    {
+        for(let j = 0; j < hgt; j++)
+        {
+            perlinNoise[i][j] /= totalAmplitude;
+        }
+    }
+    return perlinNoise;
+}
+
 class GameBoard
 {
     constructor()
@@ -196,24 +285,31 @@ class GameBoard
         this.maxPlayers = 2;
         this.highestId = 0;
         this.tileSideLength = 64;
-        this.mapSideLength = 20 * this.tileSideLength;
+        this.tileSideCount = 20;
+        this.mapSideLength = this.tileSideCount * this.tileSideLength;
         this.generateMap();
         for(let i = 0; i < 3; i++){
             let x = Math.random() * 1024;
             let y = Math.random() * 1024;
-            let newCave = new Entity("cave", i, x, y, 1, game, -1);
-            entityList.append(newCave);
+            let newCave = new Entity("cave", this.requestId(), x, y, 1, this, -1);
+            this.entityList.push(newCave);
         }
     }
     generateMap()
     {
+        let whiteNoise = generateWhiteNoise(this.tileSideCount, this.tileSideCount);
+        let perlinNoise = generatePerlinNoise(whiteNoise, 4);
+
         this.map = [];
-        for(let r = 0; r < this.mapSideLength; r += this.tileSideLength)
+        for(let i = 0; i < this.tileSideCount; i++)
         {
             let row = [];
-            for(let c = 0; c < this.mapSideLength; c += this.tileSideLength)
+            for(let j = 0; j < this.tileSideCount; j++)
             {
-                row.push({"type":"ground","height":r+c})
+                row.push({
+                    type: "ground",
+                    height: perlinNoise[i][j] * 256
+                });
             }
             this.map.push(row);
         }

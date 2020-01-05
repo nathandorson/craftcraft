@@ -126,14 +126,18 @@ class Camera
         this.panSpeedMultiplier = 12;
         this.maxPanSpeed = 9;
         this.panTriggerWidth = 100;
-        this.minx = -mapSideLength / 2;
-        this.miny = -mapSideLength / 2;
-        this.maxx = mapSideLength / 2;
-        this.maxy = mapSideLength / 2;
+        this.updateLimits();
     }
     zoom()
     {
         scale(this.scaleLevel);
+    }
+    updateLimits()
+    {
+        this.minx = -width / 2;
+        this.miny = -width / 2;
+        this.maxx = gameWidth - (width / 2);
+        this.maxy = gameHeight - (width / 2);
     }
     pan()
     {
@@ -178,6 +182,14 @@ class Camera
         this.zoom();
         translate(-this.x, -this.y);
     }
+    changeScale(newScale)
+    {
+        let widthChange = (width / newScale) - (width / this.scaleLevel);
+        let heightChange = (height / newScale) - (height / this.scaleLevel);
+        this.x -= widthChange * (mouseX / width);
+        this.y -= heightChange * (mouseY / height);
+        this.scaleLevel = newScale;
+    }
 }
 var entityList = [];
 var selectedEntities = [];
@@ -187,6 +199,8 @@ var worldMap = [];
 var shadowSurface = null;
 var lightDiameter = 200;
 var resources = 0;
+var gameWidth = 640;
+var gameHeight = 640;
 function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
@@ -218,7 +232,7 @@ function drawWorld()
             let tile = worldMap[r][c];
             let type = tile.type;
             let height = tile.height;
-            fill(0,10*height/tileSideLength,0);
+            fill(Math.max(128 - height, 0), height, 0);
             rect(r*tileSideLength,c*tileSideLength,tileSideLength,tileSideLength);
         }
     }
@@ -234,7 +248,8 @@ function drawWorld()
         {
             shadowSurface.fill(255, 255);
             shadowSurface.noStroke();
-            shadowSurface.ellipse(ent.x, ent.y, lightDiameter, lightDiameter);
+            let entCoord = gameToUICoord(ent.x, ent.y);
+            shadowSurface.ellipse(entCoord[0], entCoord[1], lightDiameter * cam.scaleLevel, lightDiameter * cam.scaleLevel);
         }
     }
     for(let i = 0; i < selectedEntities.length; i++)
@@ -246,7 +261,6 @@ function drawWorld()
         ellipse(ent.x, ent.y, ent.radius * 2, ent.radius * 2);
         strokeWeight(1);
     }
-    image(shadowSurface, 0, 0);
 }
 var connected = false, ws = null;
 function connect(target)
@@ -272,16 +286,26 @@ function connect(target)
     }
     ws.onmessage = function(ev) {
         let data = JSON.parse(ev.data);
-        //console.log(data);
         if (data.type == "sendMap")
         {
             worldMap = data.worldMap;
+            if(typeof worldMap === "undefined" || typeof worldMap.length !== "number" || worldMap.length == 0)
+            {
+                gameWidth = 0;
+                gameHeight = 0;
+            }
+            else
+            {
+                gameWidth = worldMap.length * tileSideLength;
+                gameHeight = worldMap[0].length * tileSideLength;
+            }
+            cam.updateLimits();
         }
-        if (data.type == "createEntity")
+        else if (data.type == "createEntity")
         {
             entityList.push(new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z))
         }
-        if(data.type == "updateEntity")
+        else if(data.type == "updateEntity")
         {
             id = data.id;
             let ent = findEntityByID(id);
@@ -292,61 +316,77 @@ function connect(target)
                 ent.z = data.z;
             }
         }
-        if(data.type == "destroyEntity")
+        else if(data.type == "destroyEntity")
         {
             console.log("destroying " + data.id);
             findEntityByID(data.id, true);
         }
-        if(data.type = "updateResources")
+        else if(data.type = "updateResources")
         {
-            resources += data.ammount;
+            resources += data.amount;
         }
     }
 }
 
 function setup()
 {
-    createCanvas(640,640);
+    createCanvas(windowWidth, windowHeight);
     background(255);
     cam = new Camera();
     connect(startupConnectionAddress);
 }
-
+function windowResized()
+{
+    resizeCanvas(windowWidth, windowHeight);
+}
 var cam;
 
+function drawContrastedText(textStr, x, y, padding)
+{
+    if(typeof padding === "undefined") padding = 4;
+    let twidth = textWidth(textStr);
+    let theight = textAscent() + textDescent();
+    fill(0);
+    rect(x - padding, y - padding, twidth + padding * 2, theight + padding * 2);
+    fill(255);
+    textAlign(LEFT, TOP);
+    text(textStr, x, y);
+}
+function gameToUICoord(x, y)
+{
+    return [
+        (x - cam.x) * cam.scaleLevel,
+        (y - cam.y) * cam.scaleLevel
+    ];
+}
+function UIToGameCoord(x, y)
+{
+    return [
+        (x / cam.scaleLevel) + cam.x,
+        (y / cam.scaleLevel) + cam.y
+    ];
+}
 function draw()
 {
     background(255);
     push();
     cam.update();
     drawWorld();
+    pop();
+    image(shadowSurface, 0, 0);
     fill(0,0,255,100)
     if(mouseIsPressed)
     {
-        rect(selectionXi,selectionYi,mouseX/cam.scaleLevel+cam.x-selectionXi,mouseY/cam.scaleLevel+cam.y-selectionYi);
+        let selCoord = gameToUICoord(selectionXi, selectionYi);
+        rect(selCoord[0], selCoord[1], mouseX - selCoord[0], mouseY - selCoord[1]);
     }
-    pop();
     if(entityPrimed)
     {
         var messageText = "Press 1 for a house, 2 for a fighter, 3 for a worker.";
-        let borderPadding = 4;
-        let twidth = textWidth(messageText);
-        let theight = textAscent() + textDescent();
-        fill(0);
-        rect(20 - borderPadding, 20 - borderPadding, twidth + borderPadding, theight + borderPadding);
-        fill(255);
-        textAlign(LEFT, TOP);
-        text(messageText, 20, 20);
+        drawContrastedText(messageText, 20, 40);
     }
-    var messageText = "resources: " + str(resources);
-        let borderPadding = 4;
-        let twidth = textWidth(messageText);
-        let theight = textAscent() + textDescent();
-        fill(0);
-        rect(20 - borderPadding, 20 - borderPadding, twidth + borderPadding, theight + borderPadding);
-        fill(255);
-        textAlign(LEFT, BOTTOM);
-        text(messageText, 20, 20);
+    var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
+    drawContrastedText(messageText, 20, 20);
 }
 
 var selectionXi = 0;
@@ -442,16 +482,18 @@ function mousePressed()
 {
     if(mouseButton == LEFT)
     {
-        selectionXi = mouseX/cam.scaleLevel+cam.x;
-        selectionYi = mouseY/cam.scaleLevel+cam.y;
+        let selCoord = UIToGameCoord(mouseX, mouseY);
+        selectionXi = selCoord[0];
+        selectionYi = selCoord[1];
     }
 }
 function mouseReleased()
 {
     if(mouseButton == LEFT)
     {
-        selectionXf = mouseX/cam.scaleLevel+cam.x;
-        selectionYf = mouseY/cam.scaleLevel+cam.y;
+        let selCoord = UIToGameCoord(mouseX, mouseY);
+        selectionXf = selCoord[0];
+        selectionYf = selCoord[1];
         selectEntities(selectionXi,selectionYi,selectionXf,selectionYf);
     }
 }
@@ -481,11 +523,11 @@ function keyPressed()
     }
     if(keyCode===UP_ARROW)
     {
-        cam.scaleLevel = cam.scaleLevel + 0.1;
+        cam.changeScale(cam.scaleLevel * 1.1);
     }
     if(keyCode===DOWN_ARROW)
     {
-        cam.scaleLevel = cam.scaleLevel - 0.1;
+        cam.changeScale(cam.scaleLevel / 1.1);
     }
     if(key=='a'||key=='A')
     {
@@ -493,7 +535,14 @@ function keyPressed()
     }
     if(key=='c')
     {
-        prepareEntity(mouseX/cam.scaleLevel+cam.x, mouseY/cam.scaleLevel+cam.y);
+        if(!entityPrimed)
+        {
+            prepareEntity(mouseX/cam.scaleLevel+cam.x, mouseY/cam.scaleLevel+cam.y);
+        }
+        else
+        {
+            entityPrimed = false;
+        }
     }
     if(key=='s')
     {

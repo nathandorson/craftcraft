@@ -161,7 +161,7 @@ class ConnectedClient
             if(typeof send === "undefined") send = broadcast;
             send(JSON.stringify({
                 type: "updateResources",
-                ammount: amt
+                amount: amt
             }));
         };
     }
