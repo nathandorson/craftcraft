@@ -299,7 +299,7 @@ function connect(target)
         }
         if(data.type = "updateResources")
         {
-            resources += data.ammount;
+            resources += data.amount;
         }
     }
 }
