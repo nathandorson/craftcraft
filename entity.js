@@ -165,14 +165,17 @@ class Entity
             }
             else
             {
+                console.log("carrying");
                 if(this.targetHouse == null){
                     let minDistance = Infinity;
                     for(let i = 0; i < this.game.entityList.length; i++)
                     {
-                        let ent = entityList[i];
-                        if(ent.type == "house" && ent.owner == this.owner && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
+                        let ent = this.game.entityList[i];
+                        if((ent.type == "house" && ent.owner == this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
                         {
                             this.targetHouse = ent;
+                            minDistance = Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2);
+                            console.log("found house");
                         }
                     }
                 }
