@@ -196,6 +196,7 @@ class Camera
         this.scaleLevel = newScale;
     }
 }
+var worldSurface = null;
 var entitySurfaces = {};
 var entityList = [];
 var selectedEntities = [];
@@ -238,26 +239,32 @@ function updateEntitySurface(ent)
 }
 function drawWorld()
 {
+    if(worldSurface == null || worldSurface.width != gameWidth || worldSurface.height != gameHeight)
+    {
+        worldSurface = createGraphics(gameWidth, gameHeight);
+        worldSurface.clear();
+        worldSurface.stroke(0);
+        for(let r = 0; r < worldMap.length; r++)
+        {
+            for(let c = 0; c < worldMap[r].length; c++)
+            {
+                let tile = worldMap[r][c];
+                //let type = tile.type;
+                let height = tile.height;
+                worldSurface.fill(Math.max(128 - height, 0), height, 0);
+                worldSurface.rect(r * tileSideLength, c * tileSideLength, tileSideLength, tileSideLength);
+            }
+        }
+    }
     if(shadowSurface == null || shadowSurface.width != width || shadowSurface.height != height)
     {
         shadowSurface = createGraphics(width, height);
-    }
-    stroke(0);
-    for(let r = 0; r < worldMap.length; r++)
-    {
-        for(let c = 0; c < worldMap[r].length; c++)
-        {
-            let tile = worldMap[r][c];
-            let type = tile.type;
-            let height = tile.height;
-            fill(Math.max(128 - height, 0), height, 0);
-            rect(r*tileSideLength,c*tileSideLength,tileSideLength,tileSideLength);
-        }
     }
     shadowSurface.blendMode(shadowSurface.BLEND);
     shadowSurface.clear();
     shadowSurface.background(0, 127);
     shadowSurface.blendMode(shadowSurface.REMOVE);
+    image(worldSurface, 0, 0);
     for(let i = 0; i < entityList.length; i++)
     {
         let ent = entityList[i];
