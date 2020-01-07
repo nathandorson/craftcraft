@@ -141,8 +141,8 @@ class Camera
     {
         this.minx = -( width * this.limitPercentage );
         this.miny = -( height * this.limitPercentage );
-        this.maxx = gameWidth - (width * this.limitPercentage);
-        this.maxy = gameHeight - (height * this.limitPercentage);
+        this.maxx = gameWidth - (width * (1 - this.limitPercentage));
+        this.maxy = gameHeight - (height * (1 - this.limitPercentage));
     }
     pan()
     {
@@ -197,6 +197,7 @@ class Camera
     }
 }
 var worldSurface = null;
+var lightSurface = null;
 var entitySurfaces = {};
 var entityList = [];
 var selectedEntities = [];
@@ -265,6 +266,14 @@ function drawWorld()
     shadowSurface.background(0, 127);
     shadowSurface.blendMode(shadowSurface.REMOVE);
     image(worldSurface, 0, 0);
+    let drawLightDiam = lightDiameter * cam.scaleLevel;
+    let drawLightRad = drawLightDiam / 2;
+    if(lightSurface == null || lightSurface.width != drawLightDiam || lightSurface.height != drawLightDiam)
+    {
+        lightSurface = createGraphics(drawLightDiam, drawLightDiam);
+        lightSurface.clear();
+        lightSurface.ellipse(drawLightRad, drawLightRad, drawLightDiam, drawLightDiam);
+    }
     for(let i = 0; i < entityList.length; i++)
     {
         let ent = entityList[i];
@@ -274,7 +283,8 @@ function drawWorld()
             shadowSurface.fill(255, 255);
             shadowSurface.noStroke();
             let entCoord = gameToUICoord(ent.x, ent.y);
-            shadowSurface.ellipse(entCoord[0], entCoord[1], lightDiameter * cam.scaleLevel, lightDiameter * cam.scaleLevel);
+            //shadowSurface.ellipse(entCoord[0], entCoord[1], lightDiameter * cam.scaleLevel, lightDiameter * cam.scaleLevel);
+            shadowSurface.image(lightSurface, entCoord[0] - drawLightRad, entCoord[1] - drawLightRad);
         }
     }
     for(let i = 0; i < selectedEntities.length; i++)
