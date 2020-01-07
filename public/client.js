@@ -1,3 +1,7 @@
+var workerSize = 5;
+var fighterSize = 7;
+var houseSize = 20;
+var caveSize = 15;
 class Entity
 {
     constructor(type,id,isFriendly,x,y,z)
@@ -41,7 +45,7 @@ class Entity
             {
                 this.mainColor = [180, 180, 180];
             }
-            this.radius = 5;
+            this.radius = workerSize;
         }
         if(type=="fighter")
         {
@@ -65,7 +69,7 @@ class Entity
             {
                 this.mainColor = [155, 0, 0];
             }
-            this.radius = 7;
+            this.radius = fighterSize;
         }
         if(type=="house")
         {
@@ -93,7 +97,7 @@ class Entity
             {
                 this.mainColor = [75, 75, 75];
             }
-            this.radius = 20;
+            this.radius = houseSize;
         }
         if(type=="cave")
         {
@@ -102,16 +106,16 @@ class Entity
             {
                 this.resourcesLeft = amt;
             }
-            this.radius = 15;
+            this.radius = caveSize;
         }
     }
     draw()
     {
-        fill(this.mainColor[0], this.mainColor[1], this.mainColor[2]);
-        stroke(this.outlineColor[0], this.outlineColor[1], this.outlineColor[2]);
-        strokeWeight(this.outlineWidth);
-        ellipse(this.x, this.y, this.radius * 2, this.radius * 2);
-
+        updateEntitySurface(this);
+        if(typeof entitySurfaces[this.type] !== "undefined")
+        {
+            image(entitySurfaces[this.type], this.x - this.radius, this.y - this.radius);
+        }
     }
 }
 class Camera
@@ -192,6 +196,7 @@ class Camera
         this.scaleLevel = newScale;
     }
 }
+var entitySurfaces = {};
 var entityList = [];
 var selectedEntities = [];
 var mapSideLength = 1024;
@@ -218,7 +223,19 @@ function findEntityByID(id, remove=false)
     }
     return null;
 }
-
+function updateEntitySurface(ent)
+{
+    if(typeof entitySurfaces[ent.type] === "undefined")
+    {
+        let surf = createGraphics(ent.radius * 2, ent.radius * 2);
+        surf.clear();
+        surf.fill(ent.mainColor[0], ent.mainColor[1], ent.mainColor[2]);
+        surf.stroke(ent.outlineColor[0], ent.outlineColor[1], ent.outlineColor[2]);
+        surf.strokeWeight(ent.outlineWidth);
+        surf.ellipse(ent.radius, ent.radius, ent.radius * 2, ent.radius * 2);
+        entitySurfaces[ent.type] = surf;
+    }
+}
 function drawWorld()
 {
     if(shadowSurface == null || shadowSurface.width != width || shadowSurface.height != height)
