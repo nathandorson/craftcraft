@@ -126,6 +126,7 @@ class Camera
         this.panSpeedMultiplier = 12;
         this.maxPanSpeed = 9;
         this.panTriggerWidth = 100;
+        this.limitPercentage = 0.1;
         this.updateLimits();
     }
     zoom()
@@ -134,10 +135,10 @@ class Camera
     }
     updateLimits()
     {
-        this.minx = -width / 2;
-        this.miny = -height / 2;
-        this.maxx = gameWidth - (width / 2);
-        this.maxy = gameHeight - (height / 2);
+        this.minx = -( width * this.limitPercentage );
+        this.miny = -( height * this.limitPercentage );
+        this.maxx = gameWidth - (width * this.limitPercentage);
+        this.maxy = gameHeight - (height * this.limitPercentage);
     }
     pan()
     {

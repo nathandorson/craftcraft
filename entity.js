@@ -86,6 +86,10 @@ class Entity
         if(!this.detectCollisions(this.x + deltaX, this.y + deltaY)){
             this.x += deltaX;
             this.y += deltaY;
+            if(this.x > this.game.mapSideLength) this.x = this.game.mapSideLength;
+            if(this.y > this.game.mapSideLength) this.y = this.game.mapSideLength;
+            if(this.x < 0) this.x = 0;
+            if(this.y < 0) this.y = 0;
             this.emitter.emit("update");
         }
         return true;
