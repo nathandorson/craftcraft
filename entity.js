@@ -193,12 +193,15 @@ class Entity
         this.game.emitter.removeListener("update", this._update);
         this.emitter.removeAllListeners();
         this.game.entityList.splice(this.game.entityList.indexOf(this), 1);
-        for(let i = this.owner.ownedEntities.length - 1; i >= 0; i--)
+        if(typeof this.owner === "object")
         {
-            let ent = this.owner.ownedEntities[i];
-            if(ent == this)
+            for(let i = this.owner.ownedEntities.length - 1; i >= 0; i--)
             {
-                this.owner.ownedEntities.splice(i, 1);
+                let ent = this.owner.ownedEntities[i];
+                if(ent == this)
+                {
+                    this.owner.ownedEntities.splice(i, 1);
+                }
             }
         }
     }

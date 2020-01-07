@@ -135,9 +135,9 @@ class Camera
     updateLimits()
     {
         this.minx = -width / 2;
-        this.miny = -width / 2;
+        this.miny = -height / 2;
         this.maxx = gameWidth - (width / 2);
-        this.maxy = gameHeight - (width / 2);
+        this.maxy = gameHeight - (height / 2);
     }
     pan()
     {
@@ -338,6 +338,7 @@ function setup()
 function windowResized()
 {
     resizeCanvas(windowWidth, windowHeight);
+    cam.updateLimits();
 }
 var cam;
 
