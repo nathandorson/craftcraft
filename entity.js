@@ -171,6 +171,7 @@ class Entity
                     for(let i = 0; i < this.game.entityList.length; i++)
                     {
                         let ent = this.game.entityList[i];
+                        console.log(ent);
                         if((ent.type == "house" && ent.owner == this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
                         {
                             this.targetHouse = ent;
