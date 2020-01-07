@@ -22,7 +22,7 @@ function main()
             webserver.use(express.static("public"));
             webserver.on("error", () => { console.log("web server error: " + e); })
             let port = 8080;
-            webserver.listen(port, () => { console.log("web server running on port " + port); });
+            webserver.listen(port, () => { console.log("web server running on http://127.0.0.1:" + port + "/game.html"); });
         }
         catch(e)
         {
