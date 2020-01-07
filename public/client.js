@@ -431,7 +431,8 @@ function sendMove(x,y)
     }
     if(targetId != -1)
     {
-        if(!this.game.entityList.target.type == "cave"){
+        let target = findEntityByID(targetId)
+        if(!target.type == "cave"){
             for(let i = 0; i < selectedEntities.length; i++)
             {
                 let ent = selectedEntities[i];
