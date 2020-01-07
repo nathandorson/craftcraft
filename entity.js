@@ -193,6 +193,14 @@ class Entity
         this.game.emitter.removeListener("update", this._update);
         this.emitter.removeAllListeners();
         this.game.entityList.splice(this.game.entityList.indexOf(this), 1);
+        for(let i = this.owner.ownedEntities.length - 1; i >= 0; i--)
+        {
+            let ent = this.owner.ownedEntities[i];
+            if(ent == this)
+            {
+                this.owner.ownedEntities.splice(i, 1);
+            }
+        }
     }
     detectCollisions(checkX, checkY)
     {
