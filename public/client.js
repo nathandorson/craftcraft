@@ -430,15 +430,29 @@ function sendMove(x,y)
     }
     if(targetId != -1)
     {
-        for(let i = 0; i < selectedEntities.length; i++)
-        {
-            let ent = selectedEntities[i];
-            ws.send(JSON.stringify({
-                type: "doAction",
-                actionType: "attack",
-                id: ent.id,
-                targetId: targetId
-            }));
+        if(!this.game.entityList.target.type == "cave"){
+            for(let i = 0; i < selectedEntities.length; i++)
+            {
+                let ent = selectedEntities[i];
+                ws.send(JSON.stringify({
+                    type: "doAction",
+                    actionType: "attack",
+                    id: ent.id,
+                    targetId: targetId
+                }));
+            }
+        }
+        else{
+            for(let i = 0; i < selectedEntities.length; i++)
+            {
+                let ent = selectedEntities[i];
+                ws.send(JSON.stringify({
+                    type: "doAction",
+                    actionType: "harvest",
+                    id: ent.id,
+                    targetId: targetId
+                }));
+            }
         }
     }
     else{
