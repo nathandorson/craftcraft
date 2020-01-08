@@ -196,19 +196,15 @@ class Camera
         this.scaleLevel = newScale;
     }
 }
-var worldSurface = null;
-var lightSurface = null;
+var worldSurface = null, lightSurface = null, shadowSurface = null;
 var entitySurfaces = {};
 var entityList = [];
 var selectedEntities = [];
-var mapSideLength = 1024;
-var tileSideLength = 64;
+var mapSideLength = 1024, tileSideLength = 64;
 var worldMap = [];
-var shadowSurface = null;
 var lightDiameter = 200;
 var resources = 0;
-var gameWidth = 640;
-var gameHeight = 640;
+var gameWidth = 640, gameHeight = 640;
 function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
@@ -227,16 +223,13 @@ function findEntityByID(id, remove=false)
 }
 function updateEntitySurface(ent)
 {
-    if(typeof entitySurfaces[ent.type] === "undefined")
-    {
-        let surf = createGraphics(ent.radius * 2, ent.radius * 2);
-        surf.clear();
-        surf.fill(ent.mainColor[0], ent.mainColor[1], ent.mainColor[2]);
-        surf.stroke(ent.outlineColor[0], ent.outlineColor[1], ent.outlineColor[2]);
-        surf.strokeWeight(ent.outlineWidth);
-        surf.ellipse(ent.radius, ent.radius, ent.radius * 2, ent.radius * 2);
-        entitySurfaces[ent.type] = surf;
-    }
+    let surf = createGraphics(ent.radius * 2, ent.radius * 2);
+    surf.clear();
+    surf.fill(ent.mainColor[0], ent.mainColor[1], ent.mainColor[2]);
+    surf.stroke(ent.outlineColor[0], ent.outlineColor[1], ent.outlineColor[2]);
+    surf.strokeWeight(ent.outlineWidth);
+    surf.ellipse(ent.radius, ent.radius, ent.radius * 2, ent.radius * 2);
+    entitySurfaces[ent.type] = surf;
 }
 function drawWorld()
 {
