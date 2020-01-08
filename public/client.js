@@ -351,7 +351,8 @@ function connect(target)
         }
         else if(data.type = "updateResources")
         {
-            resources += data.amount;
+            console.log(data);
+            resources = data.amount;
         }
     }
 }
