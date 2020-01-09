@@ -443,9 +443,13 @@ function draw()
                 }
             }
         }
-        ellipse(primedLocation[x],primedLocation[y],10,10);
-        entCreationX = primedLocation[x];
-        entCreationY = primedLocation[y];
+        if(primedLocation = [0,0])
+        {
+            primedLocation = [x,y];
+        }
+        ellipse(primedLocation[0],primedLocation[1],10,10);
+        entCreationX = primedLocation[0];
+        entCreationY = primedLocation[1];
 
     }
     var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
