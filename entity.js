@@ -167,7 +167,10 @@ class Entity
                 else
                 {
                     this.carrying = true;
-                    this.target.changeResources(-1);
+                    if(this.target.type == "cave")
+                    {
+                        this.target.changeResources(-1);
+                    }
                     this.waitSteps = 60;
                 }
             }
