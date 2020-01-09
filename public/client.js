@@ -238,13 +238,12 @@ function drawWorld()
     {
         worldSurface = createGraphics(gameWidth, gameHeight);
         worldSurface.clear();
-        worldSurface.stroke(0);
+        worldSurface.noStroke();
         for(let r = 0; r < worldMap.length; r++)
         {
             for(let c = 0; c < worldMap[r].length; c++)
             {
                 let tile = worldMap[r][c];
-                //let type = tile.type;
                 let height = tile.height;
                 worldSurface.fill(Math.max(128 - height, 0), height, 0);
                 worldSurface.rect(r * tileSideLength, c * tileSideLength, tileSideLength, tileSideLength);
