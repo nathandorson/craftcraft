@@ -285,7 +285,6 @@ function forCircle(x, y, radius, begin, end, steps, action)
     for(let i = 0; i < steps; i++)
     {
         let angle = begin + (i / (steps - 1)) * arcDist;
-        console.log(angle);
         action(x + Math.cos(angle) * radius, y - Math.sin(angle) * radius);
     }
 }
