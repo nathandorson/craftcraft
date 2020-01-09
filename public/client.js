@@ -203,6 +203,7 @@ var selectedEntities = [];
 var mapSideLength = 1024, tileSideLength = 64;
 var worldMap = [];
 var lightDiameter = 200;
+var buildRadius = 100;
 var resources = 0;
 var gameWidth = 640, gameHeight = 640;
 function findEntityByID(id, remove=false)
@@ -414,6 +415,38 @@ function draw()
     {
         var messageText = "Press 1 for a house, 2 for a fighter, 3 for a worker.";
         drawContrastedText(messageText, 20, 40);
+
+        let minDist = Infinity;
+        let primedLocation = [0,0];
+        let x = mouseX/cam.scaleLevel+cam.x;
+        let y = mouseY/cam.scaleLevel+cam.y;
+        for(let i = 0; i < entityList.length; i++)
+        {
+            let ent = entityList[i];
+            if(ent.type == "house")
+            {
+                let dist = Math.sqrt((x - ent.x)**2 + (y - ent.y**2));
+                if(dist < minDist)
+                {
+                    minDist = dist;
+                    if(dist > buildRadius)
+                    {
+                        primedLocation = [
+                            buildRadius*(x - ent.x)/dist,
+                            buildRadius*(y - ent.y)/dist
+                        ];
+                    }
+                    else
+                    {
+                        primedLocation = [x,y];
+                    }
+                }
+            }
+        }
+        ellipse(primedLocation[x],primedLocation[y],10,10);
+        entCreationX = primedLocation[x];
+        entCreationY = primedLocation[y];
+
     }
     var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
     drawContrastedText(messageText, 20, 20);
@@ -505,10 +538,8 @@ var entityPrimed = false;
 var entCreationX = 0;
 var entCreationY = 0;
 
-function prepareEntity(x,y)
+function prepareEntity()
 {
-    entCreationX = x;
-    entCreationY = y;
     entityPrimed = true;
 }
 
@@ -582,7 +613,7 @@ function keyPressed()
     {
         if(!entityPrimed)
         {
-            prepareEntity(mouseX/cam.scaleLevel+cam.x, mouseY/cam.scaleLevel+cam.y);
+            prepareEntity();
         }
         else
         {

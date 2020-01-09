@@ -391,5 +391,21 @@ class GameBoard
     {
         this.players.splice(this.players.indexOf(player), 1);
     }
+    checkCollision(entity)
+    {
+        for(let i = 0; i < this.entityList.length; i++)
+        {
+            let targetEntity = this.entityList[i];
+            if(entity != targetEntity)
+            {
+                let distSqr = (entity.x - targetEntity.x) ** 2 + (entity.y - targetEntity.y) ** 2;
+                if(distSqr < (entity.radius + targetEntity.radius) ** 2)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
 module.exports = GameBoard;
