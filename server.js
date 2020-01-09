@@ -66,14 +66,17 @@ var receivedActions = {
         let z;
         if(cellx >= game.map.length || cellx < 0 || celly >= game.map[cellx].length || celly < 0)
         {
-            z = 0;
+            return; // just dont make it outside of the map
         }
         else
         {
             z = game.map[cellx][celly].height;
         }
         let entity = new Entity(entityType, id, x, y, z, game, cl.player);
-        cl.player.addEntity(entity);
+        if(!game.checkCollision(entity))
+        {
+            cl.player.addEntity(entity);
+        }
     }
 };
 function broadcast(strMessage)

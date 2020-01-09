@@ -291,14 +291,22 @@ class GameBoard
         this.tileSideCount = 20;
         this.mapSideLength = this.tileSideCount * this.tileSideLength;
         this.generateMap();
-        let anotherNewCave = new Entity("cave", this.requestId(), 32, 32, 1, this, -1);
-        this.entityList.push(anotherNewCave);
-        for(let i = 0; i < 3; i++){
-            let x = Math.random() * 1024;
-            let y = Math.random() * 1024;
-            let newCave = new Entity("cave", this.requestId(), x, y, 1, this, -1);
-            this.entityList.push(newCave);
-        }
+        this.entityList.push(new Entity("cave", this.requestId(), 32, 32, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(), 32, 132, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(), 132, 32, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(), this.mapSideLength - 32, this.mapSideLength - 32, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(), this.mapSideLength - 132, this.mapSideLength - 32, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(), this.mapSideLength - 32, this.mapSideLength - 132, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(),  this.mapSideLength - 32, 32, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(),  this.mapSideLength - 132, 32, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(),  this.mapSideLength - 232, 32, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(),  this.mapSideLength - 32, 132, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(),  this.mapSideLength - 32, 232, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(),  32, this.mapSideLength - 32, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(),  132, this.mapSideLength - 32, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(),  232, this.mapSideLength - 32, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(),  32, this.mapSideLength - 132, 1, this, -1));
+        this.entityList.push(new Entity("cave", this.requestId(),  32, this.mapSideLength - 232, 1, this, -1));
     }
     generateMap()
     {
@@ -382,6 +390,22 @@ class GameBoard
     removePlayer(player)
     {
         this.players.splice(this.players.indexOf(player), 1);
+    }
+    checkCollision(entity)
+    {
+        for(let i = 0; i < this.entityList.length; i++)
+        {
+            let targetEntity = this.entityList[i];
+            if(entity != targetEntity)
+            {
+                let distSqr = (entity.x - targetEntity.x) ** 2 + (entity.y - targetEntity.y) ** 2;
+                if(distSqr < (entity.radius + targetEntity.radius) ** 2)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
 module.exports = GameBoard;

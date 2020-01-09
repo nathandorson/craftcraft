@@ -167,7 +167,10 @@ class Entity
                 else
                 {
                     this.carrying = true;
-                    this.target.changeResources(-1);
+                    if(this.target.type == "cave")
+                    {
+                        this.target.changeResources(-1);
+                    }
                     this.waitSteps = 60;
                 }
             }
@@ -178,7 +181,8 @@ class Entity
                     for(let i = 0; i < this.game.entityList.length; i++)
                     {
                         let ent = this.game.entityList[i];
-                        if((ent.type == "house" && ent.owner == this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
+                        console.log(ent);
+                        if((ent.type == "house" && ent.isFriendly) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
                         {
                             this.targetHouse = ent;
                             minDistance = Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2);
