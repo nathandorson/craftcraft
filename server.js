@@ -55,6 +55,13 @@ var receivedActions = {
         {
             cl.createUnit(entityList[i], false, cl.player);
         }
+        let mapSideLength = 1280
+        if(clientList.length == 0){
+            cl.player.addEntity(new Entity("house", game.requestId(), mapSideLength - 300, 300, 1, game, cl.player));
+        } else {
+            cl.player.addEntity(new Entity("house", game.requestId(), 300, mapSideLength - 300, 1, game, cl.player));
+        }
+        
     },
     createUnit: function(cl, data) {
         let x = data.x;
