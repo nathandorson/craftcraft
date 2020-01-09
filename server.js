@@ -55,7 +55,7 @@ var receivedActions = {
         {
             cl.createUnit(entityList[i], false, cl.player);
         }
-        mapSideLength = 1280
+        let mapSideLength = 1280
         cl.Player.addEntity(new Entity("house", game.requestId(), mapSideLength - 300, 300, 1, game, cl.Player));
     },
     createUnit: function(cl, data) {

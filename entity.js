@@ -64,7 +64,7 @@ class Entity
             {
 
             };
-            mapSideLength = 1280
+            let mapSideLength = 1280
             if((this.x == 300 && this.y == mapSideLength - 300) && (this.x == mapSideLength - 300 && this.y == 300)){
                 this.isBigHouse = true;
                 this.isBase = true;
