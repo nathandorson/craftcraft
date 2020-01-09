@@ -417,40 +417,35 @@ function draw()
         drawContrastedText(messageText, 20, 40);
 
         let minDist = Infinity;
-        let primedLocation = [0,0];
-        let x = mouseX/cam.scaleLevel+cam.x;
-        let y = mouseY/cam.scaleLevel+cam.y;
+        let coordinates = UIToGameCoord(mouseX,mouseY);
+        let x = coordinates[0];
+        let y = coordinates[1];
         for(let i = 0; i < entityList.length; i++)
         {
             let ent = entityList[i];
-            if(ent.type == "house")
+            if(ent.type == "house" && ent.isFriendly)
             {
-                let dist = Math.sqrt((x - ent.x)**2 + (y - ent.y**2));
+                let dist = Math.sqrt((x - ent.x)**2 + (y - ent.y)**2);
+                console.log(dist);
                 if(dist < minDist)
                 {
                     minDist = dist;
                     if(dist > buildRadius)
                     {
-                        primedLocation = [
-                            buildRadius*(x - ent.x)/dist,
-                            buildRadius*(y - ent.y)/dist
-                        ];
+                        entCreationX = ent.x + buildRadius*(x - ent.x)/dist;
+                        entCreationY = ent.y + buildRadius*(y - ent.y)/dist;
                     }
                     else
                     {
-                        primedLocation = [x,y];
+                        entCreationX = x;
+                        entCreationY = y;
                     }
                 }
             }
         }
-        if(primedLocation = [0,0])
-        {
-            primedLocation = [x,y];
-        }
-        ellipse(primedLocation[0],primedLocation[1],10,10);
-        entCreationX = primedLocation[0];
-        entCreationY = primedLocation[1];
-
+        let UIcoordinates = gameToUICoord(entCreationX,entCreationY);
+        fill(0);
+        ellipse(UIcoordinates[0],UIcoordinates[1],10,10);
     }
     var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
     drawContrastedText(messageText, 20, 20);
