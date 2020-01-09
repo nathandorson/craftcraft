@@ -172,7 +172,7 @@ class Entity
                     {
                         let ent = this.game.entityList[i];
                         console.log(ent);
-                        if((ent.type == "house" && ent.owner == this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
+                        if((ent.type == "house" && ent.isFriendly) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
                         {
                             this.targetHouse = ent;
                             minDistance = Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2);
