@@ -278,6 +278,18 @@ function generatePerlinNoise(baseNoise /*2d float array*/, octaveCount /*int*/)
     return perlinNoise;
 }
 
+function forCircle(x, y, radius, begin, end, steps, action)
+{
+    if(begin == end) return;
+    let arcDist = end - begin;
+    for(let i = 0; i < steps; i++)
+    {
+        let angle = begin + (i / (steps - 1)) * arcDist;
+        console.log(angle);
+        action(x + Math.cos(angle) * radius, y - Math.sin(angle) * radius);
+    }
+}
+
 class GameBoard
 {
     constructor()
@@ -291,22 +303,6 @@ class GameBoard
         this.tileSideCount = 20;
         this.mapSideLength = this.tileSideCount * this.tileSideLength;
         this.generateMap();
-        this.entityList.push(new Entity("cave", this.requestId(), 32, 32, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(), 32, 132, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(), 132, 32, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(), this.mapSideLength - 32, this.mapSideLength - 32, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(), this.mapSideLength - 132, this.mapSideLength - 32, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(), this.mapSideLength - 32, this.mapSideLength - 132, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(),  this.mapSideLength - 32, 32, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(),  this.mapSideLength - 132, 32, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(),  this.mapSideLength - 232, 32, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(),  this.mapSideLength - 32, 132, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(),  this.mapSideLength - 32, 232, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(),  32, this.mapSideLength - 32, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(),  132, this.mapSideLength - 32, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(),  232, this.mapSideLength - 32, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(),  32, this.mapSideLength - 132, 1, this, -1));
-        this.entityList.push(new Entity("cave", this.requestId(),  32, this.mapSideLength - 232, 1, this, -1));
     }
     generateMap()
     {
@@ -326,6 +322,15 @@ class GameBoard
             }
             this.map.push(row);
         }
+        let _this = this;
+        function createCave(x, y)
+        {
+            _this.entityList.push(new Entity("cave", _this.requestId(), x, y, 1, _this, -1));
+        }
+        forCircle(132, 132, 100, Math.PI / 2, Math.PI, 4, createCave);
+        forCircle(this.mapSideLength - 132, this.mapSideLength - 132, 100, (Math.PI * 3) / 2, Math.PI * 2, 4, createCave);
+        forCircle(256, this.mapSideLength - 256, 212, Math.PI / 2, Math.PI * 2, 6, createCave);
+        forCircle(this.mapSideLength - 256, 256, 212, -Math.PI / 2, Math.PI , 6, createCave);
     }
     update()
     {
