@@ -137,32 +137,40 @@ class ConnectedClient
         };
         this.destroyUnit = (unit, sendToAll) => {
             //tell client unit is no more
+            let data = JSON.stringify({
+                type: "destroyEntity",
+                id: unit.id
+            });
             if(sendToAll)
             {
                 for(let i = 0; i < clientList.length; i++)
                 {
                     let client = clientList[i];
-                    client.socket.send(JSON.stringify({
-                        type: "destroyEntity",
-                        id: unit.id
-                    }));
+                    client.socket.send(data);
                 }
             }
             else
             {
-                this.socket.send(JSON.stringify({
-                    type: "destroyEntity",
-                    id: unit.id
-                }));
+                this.socket.send(data);
             }
         };
-        this.updateResources = (amt, send) => {
+        this.updateResources = (amt, sendToAll) => {
             //tell client to update resource amount
-            if(typeof send === "undefined") send = broadcast;
-            send(JSON.stringify({
+            let data = JSON.stringify({
                 type: "updateResources",
                 amount: amt
-            }));
+            });
+            if(sendToAll)
+            {
+                for(let i = 0; i < clientList.length; i++)
+                {
+                    clientList[i].socket.send(data);
+                }
+            }
+            else
+            {
+                this.socket.send(data);
+            }
         };
     }
     update()
@@ -179,6 +187,7 @@ class ConnectedClient
         });
         player.emitter.on("update", this.updateUnit);
         player.emitter.on("destroy", this.destroyUnit);
+        player.emitter.on("resource", this.updateResources);
         this.sendWorld();
     }
     sendWorld()

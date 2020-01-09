@@ -11,9 +11,10 @@ class Entity
         this.game = game;
         this.owner = owner;
         
+        this.waitSteps = 0;
         this.moveSpeed = 1;
         this.stopMoveRadius = 1;
-        this.stopMoveHarvestRadius = 20;
+        this.stopMoveHarvestRadius = 32;
         this.stopMoveAttackRadius = 20;
         this.damage = 1;
         this.damageCooldownMax = 60;
@@ -34,14 +35,14 @@ class Entity
             this.carrying = false;
             this.targetHouse = null;
         }
-        if(type=="fighter")
+        else if(type=="fighter")
         {
             this.health = 5;
             this.moveSpeed = 2;
             this.damage = 2;
             this.radius = 7;
         }
-        if(type=="house")
+        else if(type=="house")
         {
             this.health = 30;
             this.isBigHouse = false;
@@ -63,13 +64,13 @@ class Entity
 
             };
         }
-        if(type=="cave")
+        else if(type=="cave")
         {
             this.health = 50;
             this.resourcesLeft = 1000000;
             this.changeResources = function(amt)
             {
-                this.resourcesLeft = amt;
+                this.resourcesLeft += amt;
             };
         }
     }
@@ -96,6 +97,11 @@ class Entity
     }
     update()
     {
+        if(this.waitSteps > 0)
+        {
+            this.waitSteps--;
+            return;
+        }
         let targetDistSqr = Infinity;
         if(this.target != null)
         {
@@ -153,6 +159,7 @@ class Entity
         {
             if(!this.carrying)
             {
+                this.targetHouse = null;
                 if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
                 {
                     this.move();
@@ -160,12 +167,12 @@ class Entity
                 else
                 {
                     this.carrying = true;
-                    this.target.changeResources(-1)
+                    this.target.changeResources(-1);
+                    this.waitSteps = 60;
                 }
             }
             else
             {
-                console.log("carrying");
                 if(this.targetHouse == null){
                     let minDistance = Infinity;
                     for(let i = 0; i < this.game.entityList.length; i++)
@@ -176,22 +183,29 @@ class Entity
                         {
                             this.targetHouse = ent;
                             minDistance = Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2);
-                            console.log("found house");
                         }
                     }
                 }
-                let targetCave = this.target;
-                this.target = this.targetHouse;
-                if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
+                if(this.targetHouse != null)
                 {
-                    this.move();
+                    let targetCave = this.target;
+                    this.target = this.targetHouse;
+                    let diffX = this.target.x - this.x;
+                    let diffY = this.target.y - this.y;
+                    targetDistSqr = diffX ** 2 + diffY ** 2;
+                    if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
+                    {
+                        this.move();
+                    }
+                    else
+                    {
+                        this.owner.resources += 1;
+                        this.carrying = false;
+                        this.emitter.emit("resource");
+                        this.waitSteps = 60;
+                    }
+                    this.target = targetCave;
                 }
-                else
-                {
-                    this.owner.resources += 1
-                    this.carrying = false;
-                }
-                this.target = targetCave;
             }
         }
     }

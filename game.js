@@ -54,6 +54,9 @@ class Player
         entity.emitter.on("update", () => {
             _this.emitter.emit("update", entity);
         });
+        entity.emitter.on("resource", () => {
+            _this.emitter.emit("resource", _this.resources, false);
+        });
     }
     move(id, x, y)
     {
@@ -288,6 +291,8 @@ class GameBoard
         this.tileSideCount = 20;
         this.mapSideLength = this.tileSideCount * this.tileSideLength;
         this.generateMap();
+        let anotherNewCave = new Entity("cave", this.requestId(), 32, 32, 1, this, -1);
+        this.entityList.push(anotherNewCave);
         for(let i = 0; i < 3; i++){
             let x = Math.random() * 1024;
             let y = Math.random() * 1024;
