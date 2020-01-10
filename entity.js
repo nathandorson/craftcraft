@@ -187,7 +187,7 @@ class Entity
                     for(let i = 0; i < this.game.entityList.length; i++)
                     {
                         let ent = this.game.entityList[i];
-                        if((ent.type == "house" && ent.isFriendly) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
+                        if((ent.type == "house" && ent.owner == this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
                         {
                             this.targetHouse = ent;
                             minDistance = Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2);
@@ -201,6 +201,7 @@ class Entity
                     let diffX = this.target.x - this.x;
                     let diffY = this.target.y - this.y;
                     targetDistSqr = diffX ** 2 + diffY ** 2;
+                    console.log(targetDistSqr);
                     if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
                     {
                         this.move();
