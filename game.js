@@ -26,7 +26,7 @@ class Player
         this.game = game;
         this.emitter = new EventEmitter();
         this.ownedEntities = [];
-        this.resources = 30;
+        this.resources = 130;
         this.visibleEnemies = [];
         var _this = this;
         this._update = () => { _this.update(); };
@@ -46,14 +46,14 @@ class Player
     }
     addEntity(entity)
     {
-        if(this.resources < entityPrice[entity.entityType])
+        if(this.resources < entityPrice[entity.type])
         {
             return;//dont make it if the player does not have enough resources
         }
         if(entity != null)
         {
             this.ownedEntities.push(entity);
-            this.resources -= entityPrice[entity.entityType];
+            this.resources -= entityPrice[entity.type];
             this.emitter.emit("resource", this.resources, false);
         }
         this.game.entityList.push(entity);
