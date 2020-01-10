@@ -1,7 +1,6 @@
 "use strict";
 var WebSocket = require("ws");
 var Entity = require("./entity.js");
-
 var wsServer;
 var game;
 var port = 5524;
@@ -53,15 +52,13 @@ var receivedActions = {
         let entityList = game.getEntityList(cl.player, false);
         for(let i = 0; i < entityList.length; i++)
         {
-            cl.createUnit(entityList[i], false, cl.player);
+            cl.player.emitter.emit("create", entityList[i], false);
         }
-        let mapSideLength = 1280
-        if(clientList.length == 0){
-            cl.player.addEntity(new Entity("house", game.requestId(), mapSideLength - 300, 300, 1, game, cl.player));
-        } else {
-            cl.player.addEntity(new Entity("house", game.requestId(), 300, mapSideLength - 300, 1, game, cl.player));
-        }
-        
+        // if(clientList.length == 0){
+        //     cl.player.addEntity(new Entity("house", game.requestId(), mapSideLength - 300, 300, 1, game, cl.player));
+        // } else {
+        //     cl.player.addEntity(new Entity("house", game.requestId(), 300, mapSideLength - 300, 1, game, cl.player));
+        // }
     },
     createUnit: function(cl, data) {
         let x = data.x;

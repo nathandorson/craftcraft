@@ -311,6 +311,10 @@ class GameBoard
         this.tileSideLength = 64;
         this.tileSideCount = 20;
         this.mapSideLength = this.tileSideCount * this.tileSideLength;
+        this.possibleSpawnLocations = [
+            { x: this.mapSideLength - 300, y: 300 },
+            { x: 300, y: this.mapSideLength - 300 }
+        ];
         this.generateMap();
     }
     generateMap()
@@ -358,7 +362,18 @@ class GameBoard
         if(this.players.length < this.maxPlayers)
         {
             let player = new Player(game);
-            //todo: generate starting units
+            let loc;
+            if(this.possibleSpawnLocations.length > 0)
+            {
+                let locationInd = Math.floor(Math.random() * this.possibleSpawnLocations.length);
+                loc = this.possibleSpawnLocations[locationInd];
+                this.possibleSpawnLocations.splice(locationInd, 1);
+            }
+            else
+            {
+                loc = { x: Math.random() * this.mapSideLength, y: Math.random() * this.mapSideLength };
+            }
+            player.addEntity(new Entity("house", this.requestId(), loc.x, loc.y, 1, this, player));
             return player;
         }
         return null;
@@ -392,7 +407,7 @@ class GameBoard
             {
                 for(let z = 0; z < this.entityList.length; z++)
                 {
-                    if(this.entityList[z].player == player && distanceTo(this.entityList[z], this.entityList[i]) < fogViewDistance){
+                    if(this.entityList[z].player != player && distanceTo(this.entityList[z], this.entityList[i]) < fogViewDistance){
                         ret.push(this.entityList[i])
                         break;
                     }
