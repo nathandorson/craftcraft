@@ -175,9 +175,9 @@ class Entity
                     this.carrying = true;
                     if(this.target.type == "cave")
                     {
-                        this.target.changeResources(-1);
+                        this.target.changeResources(-1); //todo: make variable
                     }
-                    this.waitSteps = 60;
+                    this.waitSteps = 60; //todo: make variable
                 }
             }
             else
@@ -187,7 +187,7 @@ class Entity
                     for(let i = 0; i < this.game.entityList.length; i++)
                     {
                         let ent = this.game.entityList[i];
-                        if((ent.type == "house" && ent.owner == this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
+                        if((ent.type == "house" && ent.owner === this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
                         {
                             this.targetHouse = ent;
                             minDistance = Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2);
@@ -208,10 +208,10 @@ class Entity
                     }
                     else
                     {
-                        this.owner.resources += 1;
+                        this.owner.resources += 1; //todo: make variable
                         this.carrying = false;
                         this.emitter.emit("resource");
-                        this.waitSteps = 60;
+                        this.waitSteps = 60; //todo: make variable
                     }
                     this.target = targetCave;
                 }
