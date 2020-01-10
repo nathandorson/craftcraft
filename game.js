@@ -13,6 +13,11 @@ function distanceTo(a, b)
 {
     return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
 }
+var entityPrice = {
+    worker: 10,
+    fighter: 15,
+    house: 100
+};
 var fogViewDistance = 100;
 class Player
 {
@@ -117,7 +122,6 @@ class Player
         let entity = this.findOwnEntityById(id);
         if(entity != null)
         {
-            //todo: create incomplete building given building type and locations
             let building;
             entity.state = Entity.States.BUILDING;
             entity.target = building;
