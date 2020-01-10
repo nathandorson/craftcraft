@@ -111,7 +111,10 @@ class Entity
     }
     draw()
     {
-        updateEntitySurface(this);
+        if(typeof entitySurfaces[this.type] === "undefined")
+        {
+            updateEntitySurface(this);
+        }
         if(typeof entitySurfaces[this.type] !== "undefined")
         {
             image(entitySurfaces[this.type], this.x - this.radius, this.y - this.radius);
@@ -206,6 +209,7 @@ var lightDiameter = 200;
 var buildRadius = 100;
 var resources = 0;
 var gameWidth = 640, gameHeight = 640;
+var controlButtonPressed = false, shiftButtonPressed = false;
 function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
@@ -455,9 +459,15 @@ var selectionXf = 0;
 var selectionYi = 0;
 var selectionYf = 0;
 
-function selectEntities(xi,yi,xf,yf)
+var entitySelectType = { DIRECT: 0, ADD: 1, REMOVE: 2 };
+
+function selectEntities(xi, yi, xf, yf, selectType)
 {
-    selectedEntities = [];
+    if(typeof selectType === "undefined")
+    {
+        selectType = entitySelectType.DIRECT;
+    }
+    let foundEntities = [];
     let lowX = Math.min(xi,xf);
     let highX = Math.max(xi,xf);
     let lowY = Math.min(yi,yf);
@@ -467,7 +477,34 @@ function selectEntities(xi,yi,xf,yf)
         let ent = entityList[i];
         if(ent.x > lowX && ent.x < highX && ent.y > lowY && ent.y < highY && ent.isFriendly)
         {
-            selectedEntities.push(entityList[i]);
+            foundEntities.push(entityList[i]);
+        }
+    }
+    if(selectType === entitySelectType.DIRECT)
+    {
+        selectedEntities = foundEntities;
+    }
+    else if(selectType === entitySelectType.ADD)
+    {
+        for(let i = 0; i < foundEntities.length; i++)
+        {
+            let ent = foundEntities[i];
+            if(selectedEntities.indexOf(ent) < 0)
+            {
+                selectedEntities.push(ent);
+            }
+        }
+    }
+    else
+    {
+        for(let i = 0; i < foundEntities.length; i++)
+        {
+            let ent = foundEntities[i];
+            let ind = selectedEntities.indexOf(ent);
+            if(ind >= 0)
+            {
+                selectedEntities.splice(ind, 1);
+            }
         }
     }
 }
@@ -568,7 +605,16 @@ function mouseReleased()
         let selCoord = UIToGameCoord(mouseX, mouseY);
         selectionXf = selCoord[0];
         selectionYf = selCoord[1];
-        selectEntities(selectionXi,selectionYi,selectionXf,selectionYf);
+        let mode = entitySelectType.DIRECT;
+        if(controlButtonPressed)
+        {
+            mode = entitySelectType.ADD;
+        }
+        else if(shiftButtonPressed)
+        {
+            mode = entitySelectType.REMOVE;
+        }
+        selectEntities(selectionXi, selectionYi, selectionXf, selectionYf, mode);
     }
 }
 function mouseClicked()
@@ -599,15 +645,23 @@ function keyPressed()
     {
         cam.changeScale(cam.scaleLevel * 1.1);
     }
-    if(keyCode===DOWN_ARROW)
+    else if(keyCode===DOWN_ARROW)
     {
         cam.changeScale(cam.scaleLevel / 1.1);
+    }
+    else if(keyCode === CONTROL)
+    {
+        controlButtonPressed = true;
+    }
+    else if(keyCode === SHIFT)
+    {
+        shiftButtonPressed = true;
     }
     if(key=='a'||key=='A')
     {
         //something something attack with all selected units that are valid to do so
     }
-    if(key=='c')
+    else if(key=='c')
     {
         if(!entityPrimed)
         {
@@ -618,8 +672,20 @@ function keyPressed()
             entityPrimed = false;
         }
     }
-    if(key=='s')
+    else if(key=='s')
     {
         sendMove(mouseX/cam.scaleLevel+cam.x,mouseY/cam.scaleLevel+cam.y);
+    }
+    
+}
+function keyReleased()
+{
+    if(keyCode === CONTROL)
+    {
+        controlButtonPressed = false;
+    }
+    else if(keyCode === SHIFT)
+    {
+        shiftButtonPressed = false;
     }
 }

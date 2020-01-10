@@ -46,15 +46,19 @@ class Player
     }
     addEntity(entity)
     {
-        if(this.resources < entityPrice[entity.type])
+        let price = 0;
+        if(typeof entityPrice[entity.type] !== "undefined")
         {
-            return;//dont make it if the player does not have enough resources
+            price = entityPrice[entity.type];
         }
+        if(this.resources < price)
+        {
+            return; //dont make it if the player does not have enough resources
+        } //note, this will currently assume that any entity not in the price list is free
         if(entity != null)
         {
             this.ownedEntities.push(entity);
-            this.resources -= entityPrice[entity.type];
-            this.emitter.emit("resource", this.resources, false);
+            this.changeResources(this.resources - price);
         }
         this.game.entityList.push(entity);
         this.emitter.emit("create", entity, false);
@@ -68,6 +72,11 @@ class Player
         entity.emitter.on("resource", () => {
             _this.emitter.emit("resource", _this.resources, false);
         });
+    }
+    changeResources(newResources)
+    {
+        this.resources = newResources;
+        this.emitter.emit("resource", this.resources, false);
     }
     move(id, x, y)
     {
