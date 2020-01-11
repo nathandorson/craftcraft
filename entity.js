@@ -163,56 +163,59 @@ class Entity
         }
         else if(this.state === Entity.States.HARVESTING)
         {
-            if(!this.carrying)
+            if(this.type === "worker")
             {
-                this.targetHouse = null;
-                if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
+                if(!this.carrying)
                 {
-                    this.move();
-                }
-                else
-                {
-                    this.carrying = true;
-                    if(this.target.type == "cave")
-                    {
-                        this.target.changeResources(-1); //todo: make variable
-                    }
-                    this.waitSteps = 60; //todo: make variable
-                }
-            }
-            else
-            {
-                if(this.targetHouse == null){
-                    let minDistance = Infinity;
-                    for(let i = 0; i < this.game.entityList.length; i++)
-                    {
-                        let ent = this.game.entityList[i];
-                        if((ent.type == "house" && ent.owner === this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
-                        {
-                            this.targetHouse = ent;
-                            minDistance = Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2);
-                        }
-                    }
-                }
-                if(this.targetHouse != null)
-                {
-                    let targetCave = this.target;
-                    this.target = this.targetHouse;
-                    let diffX = this.target.x - this.x;
-                    let diffY = this.target.y - this.y;
-                    targetDistSqr = diffX ** 2 + diffY ** 2;
+                    this.targetHouse = null;
                     if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
                     {
                         this.move();
                     }
                     else
                     {
-                        this.owner.resources += 1; //todo: make variable
-                        this.carrying = false;
-                        this.emitter.emit("resource");
+                        this.carrying = true;
+                        if(this.target.type == "cave")
+                        {
+                            this.target.changeResources(-1); //todo: make variable
+                        }
                         this.waitSteps = 60; //todo: make variable
                     }
-                    this.target = targetCave;
+                }
+                else
+                {
+                    if(this.targetHouse == null){
+                        let minDistance = Infinity;
+                        for(let i = 0; i < this.game.entityList.length; i++)
+                        {
+                            let ent = this.game.entityList[i];
+                            if((ent.type == "house" && ent.owner === this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
+                            {
+                                this.targetHouse = ent;
+                                minDistance = Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2);
+                            }
+                        }
+                    }
+                    if(this.targetHouse != null)
+                    {
+                        let targetCave = this.target;
+                        this.target = this.targetHouse;
+                        let diffX = this.target.x - this.x;
+                        let diffY = this.target.y - this.y;
+                        targetDistSqr = diffX ** 2 + diffY ** 2;
+                        if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
+                        {
+                            this.move();
+                        }
+                        else
+                        {
+                            this.owner.resources += 1; //todo: make variable
+                            this.carrying = false;
+                            this.emitter.emit("resource");
+                            this.waitSteps = 60; //todo: make variable
+                        }
+                        this.target = targetCave;
+                    }
                 }
             }
         }

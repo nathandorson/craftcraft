@@ -1,7 +1,42 @@
-var workerSize = 5;
-var fighterSize = 7;
-var houseSize = 20;
-var caveSize = 15;
+var worldSurface = null, lightSurface = null, shadowSurface = null;
+var entitySurfaces = {};
+var entityList = [];
+var selectedEntities = [];
+var mapSideLength = 1024, tileSideLength = 64;
+var worldMap = [];
+var lightDiameter = 200;
+var buildRadius = 100;
+var resources = 0;
+var gameWidth = 640, gameHeight = 640;
+var controlButtonPressed = false, shiftButtonPressed = false;
+var entityInfo = {
+    worker: {
+        radius: 5,
+        friendlyColor: [255, 255, 255],
+        opposingColor: [180, 180, 180]
+    },
+    fighter: {
+        radius: 7,
+        friendlyColor: [255, 0, 0],
+        opposingColor: [155, 0, 0]
+    },
+    house: {
+        radius: 20,
+        friendlyColor: [150, 150, 150],
+        opposingColor: [75, 75, 75]
+    },
+    cave: {
+        radius: 15,
+        friendlyColor: [255, 255, 255],
+        opposingColor: [255, 255, 255]
+    }
+}
+var cam;
+var connected = false, ws = null;
+var selectionXi = 0, electionXf = 0, selectionYi = 0, selectionYf = 0;
+var entitySelectType = { DIRECT: 0, ADD: 1, REMOVE: 2 };
+var entityPrimed = false;
+var entCreationX = 0, entCreationY = 0;
 class Entity
 {
     constructor(type,id,isFriendly,x,y,z)
@@ -16,97 +51,10 @@ class Entity
         this.outlineColor = [0, 0, 0];
         this.outlineWidth = 1;
         this.radius = 10;
-        if(type=="worker")
+        let info = entityInfo[this.type];
+        for(let prop in info)
         {
-            this.move = function(x,y)
-            {
-                this.x = x;
-                this.y = y;
-                this.z = z;
-            }
-            this.harvest = function()
-            {
-                //
-            }
-            this.harvesting = false;
-            this.harvestTargetID = null;
-            this.build = function()
-            {
-                //
-            }
-            this.building = false;
-            this.buildingTargetLocation = null;
-            this.buildingTargetID = null;
-            if(isFriendly)
-            {
-                this.mainColor = [255, 255, 255];
-            }
-            else
-            {
-                this.mainColor = [180, 180, 180];
-            }
-            this.radius = workerSize;
-        }
-        if(type=="fighter")
-        {
-            this.move = function(x,y,z)
-            {
-                this.x = x;
-                this.y = y;
-                this.z = z
-            }
-            this.attack = function()
-            {
-                //
-            }
-            this.attacking = false;
-            this.attackTargetID = null;
-            if(isFriendly)
-            {
-                this.mainColor = [255, 0, 0];
-            }
-            else
-            {
-                this.mainColor = [155, 0, 0];
-            }
-            this.radius = fighterSize;
-        }
-        if(type=="house")
-        {
-            this.isBigHouse = false;
-            this.attack = function(type)
-            {
-                if(type=="fighter")
-                {
-
-                }
-                else if(type=="worker")
-                {
-
-                }
-            }
-            this.spawnUnit = function()
-            {
-
-            }
-            if(isFriendly)
-            {
-                this.mainColor = [150, 150, 150];
-            }
-            else
-            {
-                this.mainColor = [75, 75, 75];
-            }
-            this.radius = houseSize;
-        }
-        if(type=="cave")
-        {
-            this.resourcesLeft = 1000000;
-            this.changeResources = function(amt)
-            {
-                this.resourcesLeft = amt;
-            }
-            this.radius = caveSize;
+            this[prop] = info[prop];
         }
     }
     draw()
@@ -121,6 +69,7 @@ class Entity
         }
     }
 }
+
 class Camera
 {
     constructor()
@@ -199,17 +148,6 @@ class Camera
         this.scaleLevel = newScale;
     }
 }
-var worldSurface = null, lightSurface = null, shadowSurface = null;
-var entitySurfaces = {};
-var entityList = [];
-var selectedEntities = [];
-var mapSideLength = 1024, tileSideLength = 64;
-var worldMap = [];
-var lightDiameter = 200;
-var buildRadius = 100;
-var resources = 0;
-var gameWidth = 640, gameHeight = 640;
-var controlButtonPressed = false, shiftButtonPressed = false;
 function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
@@ -230,13 +168,14 @@ function updateEntitySurface(ent)
 {
     let surf = createGraphics(ent.radius * 2, ent.radius * 2);
     surf.clear();
-    surf.fill(ent.mainColor[0], ent.mainColor[1], ent.mainColor[2]);
+    let col = ent.isFriendly ? ent.friendlyColor : ent.opposingColor;
+    surf.fill(col[0], col[1], col[2]);
     surf.stroke(ent.outlineColor[0], ent.outlineColor[1], ent.outlineColor[2]);
     surf.strokeWeight(ent.outlineWidth);
     surf.ellipse(ent.radius, ent.radius, ent.radius * 2, ent.radius * 2);
     entitySurfaces[ent.type] = surf;
 }
-function drawWorld()
+function updateWorldSurface()
 {
     if(worldSurface == null || worldSurface.width != gameWidth || worldSurface.height != gameHeight)
     {
@@ -254,6 +193,9 @@ function drawWorld()
             }
         }
     }
+}
+function updateShadowSurface()
+{
     if(shadowSurface == null || shadowSurface.width != width || shadowSurface.height != height)
     {
         shadowSurface = createGraphics(width, height);
@@ -262,7 +204,7 @@ function drawWorld()
     shadowSurface.clear();
     shadowSurface.background(0, 127);
     shadowSurface.blendMode(shadowSurface.REMOVE);
-    image(worldSurface, 0, 0);
+    //update light surface too
     let drawLightDiam = lightDiameter * cam.scaleLevel;
     let drawLightRad = drawLightDiam / 2;
     if(lightSurface == null || lightSurface.width != drawLightDiam || lightSurface.height != drawLightDiam)
@@ -274,15 +216,24 @@ function drawWorld()
     for(let i = 0; i < entityList.length; i++)
     {
         let ent = entityList[i];
-        ent.draw();
         if(ent.isFriendly)
         {
             shadowSurface.fill(255, 255);
             shadowSurface.noStroke();
             let entCoord = gameToUICoord(ent.x, ent.y);
-            //shadowSurface.ellipse(entCoord[0], entCoord[1], lightDiameter * cam.scaleLevel, lightDiameter * cam.scaleLevel);
             shadowSurface.image(lightSurface, entCoord[0] - drawLightRad, entCoord[1] - drawLightRad);
         }
+    }
+}
+function drawWorld()
+{
+    updateWorldSurface();
+    updateShadowSurface();
+    image(worldSurface, 0, 0);
+    for(let i = 0; i < entityList.length; i++)
+    {
+        let ent = entityList[i];
+        ent.draw();
     }
     for(let i = 0; i < selectedEntities.length; i++)
     {
@@ -294,7 +245,46 @@ function drawWorld()
         strokeWeight(1);
     }
 }
-var connected = false, ws = null;
+var receivedActions = {
+    sendMap: function(data)
+    {
+        worldMap = data.worldMap;
+        if(typeof worldMap === "undefined" || typeof worldMap.length !== "number" || worldMap.length == 0)
+        {
+            gameWidth = 0;
+            gameHeight = 0;
+        }
+        else
+        {
+            gameWidth = worldMap.length * tileSideLength;
+            gameHeight = worldMap[0].length * tileSideLength;
+        }
+        cam.updateLimits();
+    },
+    createEntity: function(data)
+    {
+        entityList.push(new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z));
+    },
+    updateEntity: function(data)
+    {
+        id = data.id;
+        let ent = findEntityByID(id);
+        if(ent != null)
+        {
+            ent.x = data.x;
+            ent.y = data.y;
+            ent.z = data.z;
+        }
+    },
+    destroyEntity: function(data)
+    {
+        findEntityByID(data.id, true);
+    },
+    updateResources: function(data)
+    {
+        resources = data.amount;
+    }
+}
 function connect(target)
 {
     if(ws != null)
@@ -318,45 +308,9 @@ function connect(target)
     }
     ws.onmessage = function(ev) {
         let data = JSON.parse(ev.data);
-        if (data.type == "sendMap")
+        if(typeof receivedActions[data.type] !== "undefined")
         {
-            worldMap = data.worldMap;
-            if(typeof worldMap === "undefined" || typeof worldMap.length !== "number" || worldMap.length == 0)
-            {
-                gameWidth = 0;
-                gameHeight = 0;
-            }
-            else
-            {
-                gameWidth = worldMap.length * tileSideLength;
-                gameHeight = worldMap[0].length * tileSideLength;
-            }
-            cam.updateLimits();
-        }
-        else if (data.type == "createEntity")
-        {
-            entityList.push(new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z))
-        }
-        else if(data.type == "updateEntity")
-        {
-            id = data.id;
-            let ent = findEntityByID(id);
-            if(ent != null)
-            {
-                ent.x = data.x;
-                ent.y = data.y;
-                ent.z = data.z;
-            }
-        }
-        else if(data.type == "destroyEntity")
-        {
-            console.log("destroying " + data.id);
-            findEntityByID(data.id, true);
-        }
-        else if(data.type = "updateResources")
-        {
-            console.log(data);
-            resources = data.amount;
+            receivedActions[data.type](data);
         }
     }
 }
@@ -373,7 +327,6 @@ function windowResized()
     resizeCanvas(windowWidth, windowHeight);
     cam.updateLimits();
 }
-var cam;
 
 function drawContrastedText(textStr, x, y, padding)
 {
@@ -429,7 +382,7 @@ function draw()
             if(ent.type == "house" && ent.isFriendly)
             {
                 let dist = Math.sqrt((x - ent.x)**2 + (y - ent.y)**2);
-                console.log(dist);
+                //console.log(dist);
                 if(dist < minDist)
                 {
                     minDist = dist;
@@ -453,13 +406,6 @@ function draw()
     var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
     drawContrastedText(messageText, 20, 20);
 }
-
-var selectionXi = 0;
-var selectionXf = 0;
-var selectionYi = 0;
-var selectionYf = 0;
-
-var entitySelectType = { DIRECT: 0, ADD: 1, REMOVE: 2 };
 
 function selectEntities(xi, yi, xf, yf, selectType)
 {
@@ -525,54 +471,101 @@ function sendMove(x,y)
             }
         }
     }
+    let target = null;
     if(targetId != -1)
     {
-        let target = findEntityByID(targetId)
-        if(!target.type == "cave"){
-            for(let i = 0; i < selectedEntities.length; i++)
+        target = findEntityByID(targetId);
+    }
+    for(let i = 0; i < selectedEntities.length; i++)
+    {
+        let entity = selectedEntities[i];
+        if(entity.type !== "cave" && entity.type !== "house")
+        {
+            let data = null;
+            if(entity.type === "worker" && target != null && target.type === "cave")
             {
-                let ent = selectedEntities[i];
-                ws.send(JSON.stringify({
-                    type: "doAction",
-                    actionType: "attack",
-                    id: ent.id,
-                    targetId: targetId
-                }));
-            }
-        }
-        else{
-            for(let i = 0; i < selectedEntities.length; i++)
-            {
-                let ent = selectedEntities[i];
-                ws.send(JSON.stringify({
+                data = {
                     type: "doAction",
                     actionType: "harvest",
-                    id: ent.id,
+                    id: entity.id,
                     targetId: targetId
-                }));
+                };
+            }
+            else if(target != null && target.type !== "cave")
+            {
+                data = {
+                    type: "doAction",
+                    actionType: "attack",
+                    id: entity.id,
+                    targetId: targetId
+                };
+            }
+            else
+            {
+                data = {
+                    type: "doAction",
+                    actionType: "move",
+                    id: entity.id,
+                    x: x,
+                    y: y
+                };
+            }
+            if(data != null)
+            {
+                ws.send(JSON.stringify(data));
             }
         }
     }
-    else{
-        for(let i = 0; i < selectedEntities.length; i++)
-        {
-            let ent = selectedEntities[i];
-            ws.send(JSON.stringify({
-                type: "doAction",
-                actionType: "move",
-                id: ent.id,
-                x: x,
-                y: y
-            }));
-        }
-    }
-    
+    // if(targetId != -1)
+    // {
+    //     let target = findEntityByID(targetId)
+    //     if(target.type != "cave"){
+    //         for(let i = 0; i < selectedEntities.length; i++)
+    //         {
+    //             let ent = selectedEntities[i];
+    //             ws.send(JSON.stringify({
+    //                 type: "doAction",
+    //                 actionType: "attack",
+    //                 id: ent.id,
+    //                 targetId: targetId
+    //             }));
+    //         }
+    //     }
+    //     else
+    //     {
+    //         for(let i = 0; i < selectedEntities.length; i++)
+    //         {
+    //             let ent = selectedEntities[i];
+    //             if(ent === "worker")
+    //             {
+    //                 ws.send(JSON.stringify({
+    //                     type: "doAction",
+    //                     actionType: "harvest",
+    //                     id: ent.id,
+    //                     targetId: targetId
+    //                 }));
+    //             }
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     for(let i = 0; i < selectedEntities.length; i++)
+    //     {
+    //         let ent = selectedEntities[i];
+    //         if(ent.type != "house" && ent.type != "cave")
+    //         {
+    //             ws.send(JSON.stringify({
+    //                 type: "doAction",
+    //                 actionType: "move",
+    //                 id: ent.id,
+    //                 x: x,
+    //                 y: y
+    //             }));
+    //         }
+    //     }
+    // }
 }
-
-var entityPrimed = false;
-var entCreationX = 0;
-var entCreationY = 0;
-
 function prepareEntity()
 {
     entityPrimed = true;

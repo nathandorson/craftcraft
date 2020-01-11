@@ -233,7 +233,21 @@ module.exports = {
             });
             socket.on("message", (data) => {
                 let dataObj = JSON.parse(data);
-                console.log(dataObj);
+                let outStr = dataObj.type + "{";
+                for(let prop in dataObj)
+                {
+                    if(prop != "type")
+                    {
+                        let item = dataObj[prop];
+                        if(typeof item === "string")
+                        {
+                            item = "\"" + item + "\"";
+                        }
+                        outStr += prop + ":" + item + " ";
+                    }
+                }
+                outStr += "}";
+                console.log(outStr);
                 if(receivedActions.hasOwnProperty(dataObj.type))
                 {
                     receivedActions[dataObj.type](client, dataObj);

@@ -321,8 +321,8 @@ class GameBoard
         this.tileSideCount = 20;
         this.mapSideLength = this.tileSideCount * this.tileSideLength;
         this.possibleSpawnLocations = [
-            { x: this.mapSideLength - 300, y: 300 },
-            { x: 300, y: this.mapSideLength - 300 }
+            { x: this.mapSideLength - 160, y: 160 },
+            { x: 160, y: this.mapSideLength - 160 }
         ];
         this.generateMap();
     }
@@ -349,10 +349,10 @@ class GameBoard
         {
             _this.entityList.push(new Entity("cave", _this.requestId(), x, y, 1, _this, -1));
         }
-        forCircle(132, 132, 100, Math.PI / 2, Math.PI, 4, createCave);
-        forCircle(this.mapSideLength - 132, this.mapSideLength - 132, 100, (Math.PI * 3) / 2, Math.PI * 2, 4, createCave);
-        forCircle(256, this.mapSideLength - 256, 212, Math.PI / 2, Math.PI * 2, 6, createCave);
-        forCircle(this.mapSideLength - 256, 256, 212, -Math.PI / 2, Math.PI , 6, createCave);
+        forCircle(132, 132, 100, Math.PI / 3, 4 * Math.PI / 3, 6, createCave);
+        forCircle(this.mapSideLength - 132, this.mapSideLength - 132, 100, Math.PI * 4 / 3, Math.PI * 7 / 3, 4, createCave);
+        forCircle(160, this.mapSideLength - 160, 128, Math.PI / 2, Math.PI * 2, 8, createCave);
+        forCircle(this.mapSideLength - 160, 160, 128, -Math.PI / 2, Math.PI , 8, createCave);
     }
     update()
     {
