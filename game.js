@@ -1,5 +1,6 @@
 var EventEmitter = require("./eventemitter.js");
 var Entity = require("./entity.js");
+var Quadtree = require("./ntree/quadtree.js");
 
 //if speed is cared about, comparison between squared
 //distances is faster than comparison between real distances
@@ -60,8 +61,6 @@ class Player
             this.ownedEntities.push(entity);
             this.changeResources(this.resources - price);
         }
-        this.game.entityList.push(entity);
-        this.emitter.emit("create", entity, false);
         var _this = this;
         entity.emitter.on("destroy", () => {
             _this.emitter.emit("destroy", entity, true);
@@ -72,6 +71,8 @@ class Player
         entity.emitter.on("resource", () => {
             _this.emitter.emit("resource", _this.resources, false);
         });
+        this.game.addEntity(entity);
+        this.emitter.emit("create", entity, false);
     }
     changeResources(newResources)
     {
@@ -324,6 +325,7 @@ class GameBoard
             { x: this.mapSideLength - 160, y: 160 },
             { x: 160, y: this.mapSideLength - 160 }
         ];
+        this.tree = new Quadtree(0, 0, this.mapSideLength, this.mapSideLength, null);
         this.generateMap();
     }
     generateMap()
@@ -387,6 +389,11 @@ class GameBoard
         }
         return null;
     }
+    addEntity(ent)
+    {
+        //this.tree.addItem(ent);
+        this.entityList.push(ent);
+    }
     findEntityByID(id)
     {
         for(let i = 0; i < this.entityList.length; i++)
@@ -408,7 +415,7 @@ class GameBoard
         let ret = [];
         for(let i = 0; i < this.entityList.length; i++)
         {
-            if(this.entityList[i].player == player)
+            if(this.entityList[i].owner == player)
             {
                 ret.push(this.entityList[i]);
             }
@@ -416,7 +423,7 @@ class GameBoard
             {
                 for(let z = 0; z < this.entityList.length; z++)
                 {
-                    if(this.entityList[z].player != player && distanceTo(this.entityList[z], this.entityList[i]) < fogViewDistance){
+                    if(this.entityList[z].player != player && distanceToSqr(this.entityList[z], this.entityList[i]) < fogViewDistance ** 2){
                         ret.push(this.entityList[i])
                         break;
                     }

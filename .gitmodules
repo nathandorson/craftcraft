@@ -1,0 +1,3 @@
+[submodule "ntree"]
+	path = ntree
+	url = https://github.com/regenerativep/ntree
