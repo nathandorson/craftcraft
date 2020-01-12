@@ -107,8 +107,6 @@ class ConnectedClient
         this.queuedUpdates = [];
         this.createUnit = (unit, sendToAll, player) => {
             //send create event to client
-            // if(typeof send !== "function") send = broadcast;
-            // send(JSON.stringify(getUnitCreationInformation(unit, player)));
             if(sendToAll)
             {
                 for(let i = 0; i < clientList.length; i++)
@@ -122,7 +120,7 @@ class ConnectedClient
             else
             {
                 this.socket.send(JSON.stringify(getUnitCreationInformation(unit, this.player)));
-                
+                if(typeof unit.id === "undefined") debugger;
             }
         };
         this.updateUnit = (unit, send, player) => { //only update if friendly unit or close to friendly unit
@@ -201,18 +199,7 @@ class ConnectedClient
     }
     destroy()
     {
-        let entityList = game.getEntityList(this.player, true);
-        for(let i = entityList.length - 1; i >= 0; i--)
-        {
-            let entity = entityList[i];
-            if(entity.owner == this.player)
-            {
-                entityList.splice(i, 1);
-                console.log("destroying entity id " + entity.id);
-            }
-        }
-        game.removePlayer(this.player);
-        console.log("removed player");
+        this.player.destroy();
         clientList.splice(clientList.indexOf(this), 1);
         console.log("removed client");
     }

@@ -82,6 +82,7 @@ class Entity
     }
     move()
     {
+        let lastPosX = this.x, lastPosY = this.y;
         if(this.target == null) return false;
         if(this.moveSpeed == 0) return true;
         let diffX = this.target.x - this.x;
@@ -97,7 +98,7 @@ class Entity
             if(this.y > this.game.mapSideLength) this.y = this.game.mapSideLength;
             if(this.x < 0) this.x = 0;
             if(this.y < 0) this.y = 0;
-            this.emitter.emit("update");
+            this.emitter.emit("update", lastPosX, lastPosY);
         }
         return true;
     }
@@ -186,13 +187,13 @@ class Entity
                 {
                     if(this.targetHouse == null){
                         let minDistance = Infinity;
-                        for(let i = 0; i < this.game.entityList.length; i++)
+                        for(let i = 0; i < this.owner.ownedEntities.length; i++)
                         {
-                            let ent = this.game.entityList[i];
-                            if((ent.type == "house" && ent.owner === this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
+                            let ent = this.owner.ownedEntities[i];
+                            if((ent.type === "house" && ent.owner === this.owner) && (ent.x-this.x)**2 + (ent.y-this.y)**2 < minDistance ** 2)
                             {
                                 this.targetHouse = ent;
-                                minDistance = Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2);
+                                minDistance = (ent.x-this.x)**2 + (ent.y-this.y)**2;
                             }
                         }
                     }
@@ -225,7 +226,7 @@ class Entity
         this.emitter.emit("destroy");
         this.game.emitter.removeListener("update", this._update);
         this.emitter.removeAllListeners();
-        this.game.entityList.splice(this.game.entityList.indexOf(this), 1);
+        this.game.removeEntity(this);
         if(typeof this.owner === "object")
         {
             for(let i = this.owner.ownedEntities.length - 1; i >= 0; i--)
@@ -240,19 +241,7 @@ class Entity
     }
     detectCollisions(checkX, checkY)
     {
-        let entityNum = this.game.entityList.length;
-        for(var i = 0; i < entityNum; i++)
-        {
-            let selfRad = this.radius;
-            let entCheck = this.game.entityList[i]
-            let checkRad = entCheck.radius;
-            //todo: can use squared distance here
-            if((Math.sqrt((entCheck.x - checkX) ** 2 + (entCheck.y - checkY) ** 2) <= (selfRad + checkRad) && entCheck != this))
-            {
-                return true;
-            }
-        }
-        return false;
+        return this.game.checkCollision({ x: checkX, y: checkY, radius: this.radius, id: this.id });
     }
     damageThis(amount)
     {
