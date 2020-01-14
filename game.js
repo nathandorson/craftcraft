@@ -570,10 +570,13 @@ class GameBoard
             let targetEntity = nearbyEntities[i];
             if(entity.id != targetEntity.id)
             {
-                let distSqr = distanceToSqr(entity, targetEntity);
-                if(distSqr < (entity.radius + targetEntity.radius) ** 2)
-                {
-                    return true;
+                if(!(entity.type == "worker" && targetEntity.owner == entity.owner && (targetEntity.type == "worker" || targetEntity.type == "fighter")))
+                { //workers do not collide with friendly workers or friendly fighters
+                    let distSqr = distanceToSqr(entity, targetEntity);
+                    if(distSqr < (entity.radius + targetEntity.radius) ** 2)
+                    {
+                        return true;
+                    }
                 }
             }
         }
