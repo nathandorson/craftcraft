@@ -177,7 +177,7 @@ class Entity
                         for(let i = 0; i < this.owner.ownedEntities.length; i++)
                         {
                             let ent = this.owner.ownedEntities[i];
-                            if((ent.type === "house" && ent.owner === this.owner) && (ent.x-this.x)**2 + (ent.y-this.y)**2 < minDistance ** 2)
+                            if((ent.type === "house" && ent.owner === this.owner) && (ent.x-this.x)**2 + (ent.y-this.y)**2 < minDistance)
                             {
                                 this.targetHouse = ent;
                                 minDistance = (ent.x-this.x)**2 + (ent.y-this.y)**2;
