@@ -1,6 +1,6 @@
 var EventEmitter = require("./eventemitter.js");
 var Entity = require("./entity.js");
-var Quadtree = require("./ntree/quadtree.js");
+var Quadtree = require("./quadtree.js");
 
 //if speed is cared about, comparison between squared
 //distances is faster than comparison between real distances
