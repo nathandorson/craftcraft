@@ -11,6 +11,7 @@ class Entity
         this.game = game;
         this.owner = owner;
         
+        this.hasUpdates = false;
         this.waitSteps = 0;
         this.moveSpeed = 1;
         this.stopMoveRadius = 1;
@@ -49,21 +50,6 @@ class Entity
             this.isBase = false;
             this.radius = 20;
             this.moveSpeed = 0;
-            this.attack = function(type)
-            {
-                if(type=="fighter")
-                {
-
-                }
-                else if(type=="worker")
-                {
-
-                }
-            };
-            this.spawnUnit = function()
-            {
-
-            };
             let mapSideLength = 1280
             if((this.x == 300 && this.y == mapSideLength - 300) && (this.x == mapSideLength - 300 && this.y == 300)){
                 this.isBigHouse = true;
@@ -82,7 +68,6 @@ class Entity
     }
     move()
     {
-        let lastPosX = this.x, lastPosY = this.y;
         if(this.target == null) return false;
         if(this.moveSpeed == 0) return true;
         let diffX = this.target.x - this.x;
@@ -92,12 +77,14 @@ class Entity
         let deltaX = (diffX / dist) * this.moveSpeed;
         let deltaY = (diffY / dist) * this.moveSpeed;
         if(!this.detectCollisions(this.x + deltaX, this.y + deltaY)){
+            let lastPosX = this.x, lastPosY = this.y;
             this.x += deltaX;
             this.y += deltaY;
             if(this.x > this.game.mapSideLength) this.x = this.game.mapSideLength;
             if(this.y > this.game.mapSideLength) this.y = this.game.mapSideLength;
             if(this.x < 0) this.x = 0;
             if(this.y < 0) this.y = 0;
+            this.hasUpdates = true;
             this.emitter.emit("update", lastPosX, lastPosY);
         }
         return true;
@@ -237,6 +224,10 @@ class Entity
                     this.owner.ownedEntities.splice(i, 1);
                 }
             }
+        }
+        if(this.type === "house")
+        {
+            console.log(this.owner.getOpposingPlayer().checkWin());
         }
     }
     detectCollisions(checkX, checkY)

@@ -29,6 +29,7 @@ class Player
         this.ownedEntities = [];
         this.resources = 130;
         this.visibleEnemies = [];
+        this.updatedEntityList = [];
         var _this = this;
         this._update = () => { _this.update(); };
         this.game.emitter.on("update", this._update);
@@ -60,20 +61,24 @@ class Player
         {
             this.ownedEntities.push(entity);
             this.changeResources(this.resources - price);
+            var _this = this;
+            entity.emitter.on("destroy", () => {
+                _this.emitter.emit("destroy", entity, true);
+            });
+            entity.emitter.on("update", (lx, ly) => {
+                _this.emitter.emit("update", entity);
+                this.game.tree.moveItem(entity, lx, ly);
+            });
+            entity.emitter.on("resource", () => {
+                _this.emitter.emit("resource", _this.resources, false);
+            });
+            this.game.addEntity(entity);
+            this.emitter.emit("create", entity, false);
         }
-        var _this = this;
-        entity.emitter.on("destroy", () => {
-            _this.emitter.emit("destroy", entity, true);
-        });
-        entity.emitter.on("update", (lx, ly) => {
-            _this.emitter.emit("update", entity);
-            this.game.tree.moveItem(entity, lx, ly);
-        });
-        entity.emitter.on("resource", () => {
-            _this.emitter.emit("resource", _this.resources, false);
-        });
-        this.game.addEntity(entity);
-        this.emitter.emit("create", entity, false);
+        else
+        {
+            debugger;
+        }
     }
     changeResources(newResources)
     {
@@ -133,7 +138,7 @@ class Player
             entity.state = Entity.States.ATTACKING;
             entity.target = target;
         }
-    }
+    }/*
     build(id, buildingType, x, y)
     {
         let entity = this.findOwnEntityById(id);
@@ -143,10 +148,11 @@ class Player
             entity.state = Entity.States.BUILDING;
             entity.target = building;
         }
-    }
+    }*/
     updateVisibleEnemies()
     {
         let newVisibleEnemies = [];
+        let tempUpdatedEntities = [];
         for(let i = 0; i < this.ownedEntities.length; i++)
         {
             let entity = this.ownedEntities[i];
@@ -166,7 +172,31 @@ class Player
                 {
                     //it is within distance
                     binaryInsert(testEntity.id, newVisibleEnemies); //binaryInsert does not add duplicates as a note
+                    if(testEntity.hasUpdates)
+                    {
+                        binaryInsert(testEntity.id, tempUpdatedEntities);
+                    }
                 }
+            }
+        }
+        for(let i = 0; i < tempUpdatedEntities.length; i++)
+        {
+            let ent = this.game.findEntityByID(tempUpdatedEntities[i]);
+            if(ent != null)
+            {
+                this.updatedEntityList.push(ent);
+            }
+            else
+            {
+                debugger;
+            }
+        }
+        for(let i = 0; i < this.ownedEntities.length; i++)
+        {
+            let ent = this.ownedEntities[i];
+            if(ent.hasUpdates)
+            {
+                this.updatedEntityList.push(ent);
             }
         }
         //find additions and removals
@@ -180,12 +210,18 @@ class Player
         }
         for(let i = 0; i < removals.length; i++)
         {
-            this.emitter.emit("destroy", this.game.findEntityByID(removals[i]), false); //TODO: use separate commands that aren't "create" and "destroy"
+            this.emitter.emit("destroy", removals[i], false); //TODO: use separate commands that aren't "create" and "destroy"
         }
     }
     update()
     {
         this.updateVisibleEnemies();
+    }
+    getUpdatedEntities()
+    {
+        let entList = this.updatedEntityList;
+        this.updatedEntityList = [];
+        return entList;
     }
     destroy()
     {
@@ -196,6 +232,34 @@ class Player
             console.log("destroying entity id " + entity.id);
         }
         this.game.removePlayer(this);
+    }
+    checkWin()
+    {
+        //currently set to win if you destroy all of the other player's houses
+        let otherPlayer = this.getOpposingPlayer();
+        let houseCount = 0;
+        for(let i = 0; i < otherPlayer.ownedEntities.length; i++)
+        {
+            let ent = otherPlayer.ownedEntities[i];
+            if(ent.type === "house")
+            {
+                houseCount++;
+            }
+        }
+        if(houseCount == 0)
+        {
+            return true;
+        }
+        return false;
+    }
+    getOpposingPlayer()
+    {
+        for(let i = 0; i < this.game.players.length; i++)
+        {
+            let pl = this.game.players[i];
+            if(pl != this) return pl;
+        }
+        return null;
     }
 }
 /**https://machinesaredigging.com/2014/04/27/binary-insert-how-to-keep-an-array-sorted-as-you-insert-data-in-it/
