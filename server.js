@@ -1,7 +1,6 @@
 "use strict";
 var WebSocket = require("ws");
 var Entity = require("./entity.js");
-
 var wsServer;
 var game;
 var port = 5524;
@@ -38,14 +37,14 @@ var receivedActions = {
                 let targetId = data["targetId"];
                 let target = game.findEntityByID(targetId);
                 cl.player.harvest(id, target);
-            }
+            }/*
             else if(actionType == "build")
             {
                 let buildingType = data["building"];
                 let tx = data["x"];
                 let ty = data["y"];
                 cl.player.build(id, buildingType, tx, ty);
-            }
+            }*/
         }
     },
     join: function(cl, data) {
@@ -53,15 +52,8 @@ var receivedActions = {
         let entityList = game.getEntityList(cl.player, false);
         for(let i = 0; i < entityList.length; i++)
         {
-            cl.createUnit(entityList[i], false, cl.player);
+            cl.player.emitter.emit("create", entityList[i], false);
         }
-        let mapSideLength = 1280
-        if(clientList.length == 0){
-            cl.player.addEntity(new Entity("house", game.requestId(), mapSideLength - 300, 300, 1, game, cl.player));
-        } else {
-            cl.player.addEntity(new Entity("house", game.requestId(), 300, mapSideLength - 300, 1, game, cl.player));
-        }
-        
     },
     createUnit: function(cl, data) {
         let x = data.x;
@@ -115,8 +107,6 @@ class ConnectedClient
         this.queuedUpdates = [];
         this.createUnit = (unit, sendToAll, player) => {
             //send create event to client
-            // if(typeof send !== "function") send = broadcast;
-            // send(JSON.stringify(getUnitCreationInformation(unit, player)));
             if(sendToAll)
             {
                 for(let i = 0; i < clientList.length; i++)
@@ -130,27 +120,63 @@ class ConnectedClient
             else
             {
                 this.socket.send(JSON.stringify(getUnitCreationInformation(unit, this.player)));
-                
+                if(typeof unit.id === "undefined") debugger;
             }
         };
-        this.updateUnit = (unit, send, player) => { //only update if friendly unit or close to friendly unit
+        this.updateUnit = (unit, sendToAll) => { //only update if friendly unit or close to friendly unit
             //send updated information to client
-            if(typeof send !== "function") send = broadcast;
-            send(JSON.stringify({
-                type: "updateEntity",
-                id: unit.id,
-                x: unit.x,
-                y: unit.y,
-                z: unit.z,
-                state: unit.state
-            }));
+            let data;
+            try
+            {
+                data = JSON.stringify({
+                    type: "updateEntity",
+                    id: unit.id,
+                    x: unit.x,
+                    y: unit.y,
+                    z: unit.z,
+                    state: unit.state
+                });
+            }
+            catch(e)
+            {
+                debugger;
+            }
+            if(sendToAll)
+            {
+                for(let i = 0; i < clientList.length; i++)
+                {
+                    let client = clientList[i];
+                    client.socket.send(data);
+                }
+            }
+            else
+            {
+                this.socket.send(data);
+            }
         };
         this.destroyUnit = (unit, sendToAll) => {
             //tell client unit is no more
-            let data = JSON.stringify({
-                type: "destroyEntity",
-                id: unit.id
-            });
+            let id;
+            if(typeof unit === "number")
+            {
+                id = unit;
+            }
+            else
+            {
+                id = unit.id;
+            }
+            let data;
+            try
+            {
+                data = JSON.stringify({
+                    type: "destroyEntity",
+                    id: id
+                });
+            }
+            catch(e)
+            {
+                debugger;
+            }
             if(sendToAll)
             {
                 for(let i = 0; i < clientList.length; i++)
@@ -185,7 +211,14 @@ class ConnectedClient
     }
     update()
     {
-
+        if(this.player != null)
+        {
+            let entities = this.player.getUpdatedEntities();
+            for(let j = 0; j < entities.length; j++)
+            {
+                this.updateUnit(entities[j], false);
+            }
+        }
     }
     setPlayer(player)
     {
@@ -195,7 +228,7 @@ class ConnectedClient
             if(typeof sendToAll === "undefined") sendToAll = false;
             this.createUnit(unit, sendToAll, tplayer);
         });
-        player.emitter.on("update", this.updateUnit);
+        //player.emitter.on("update", this.updateUnit);
         player.emitter.on("destroy", this.destroyUnit);
         player.emitter.on("resource", this.updateResources);
         this.sendWorld();
@@ -209,18 +242,7 @@ class ConnectedClient
     }
     destroy()
     {
-        let entityList = game.getEntityList(this.player, true);
-        for(let i = entityList.length - 1; i >= 0; i--)
-        {
-            let entity = entityList[i];
-            if(entity.owner == this.player)
-            {
-                entityList.splice(i, 1);
-                console.log("destroying entity id " + entity.id);
-            }
-        }
-        game.removePlayer(this.player);
-        console.log("removed player");
+        this.player.destroy();
         clientList.splice(clientList.indexOf(this), 1);
         console.log("removed client");
     }
@@ -241,7 +263,21 @@ module.exports = {
             });
             socket.on("message", (data) => {
                 let dataObj = JSON.parse(data);
-                console.log(dataObj);
+                let outStr = dataObj.type + "{";
+                for(let prop in dataObj)
+                {
+                    if(prop != "type")
+                    {
+                        let item = dataObj[prop];
+                        if(typeof item === "string")
+                        {
+                            item = "\"" + item + "\"";
+                        }
+                        outStr += prop + ":" + item + " ";
+                    }
+                }
+                outStr += "}";
+                console.log(outStr);
                 if(receivedActions.hasOwnProperty(dataObj.type))
                 {
                     receivedActions[dataObj.type](client, dataObj);

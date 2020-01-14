@@ -11,6 +11,7 @@ class Entity
         this.game = game;
         this.owner = owner;
         
+        this.hasUpdates = false;
         this.waitSteps = 0;
         this.moveSpeed = 1;
         this.stopMoveRadius = 1;
@@ -49,21 +50,6 @@ class Entity
             this.isBase = false;
             this.radius = 20;
             this.moveSpeed = 0;
-            this.attack = function(type)
-            {
-                if(type=="fighter")
-                {
-
-                }
-                else if(type=="worker")
-                {
-
-                }
-            };
-            this.spawnUnit = function()
-            {
-
-            };
             let mapSideLength = 1280
             if((this.x == 300 && this.y == mapSideLength - 300) || (this.x == mapSideLength - 300 && this.y == 300)){
                 this.isBigHouse = true;
@@ -91,13 +77,15 @@ class Entity
         let deltaX = (diffX / dist) * this.moveSpeed;
         let deltaY = (diffY / dist) * this.moveSpeed;
         if(!this.detectCollisions(this.x + deltaX, this.y + deltaY)){
+            let lastPosX = this.x, lastPosY = this.y;
             this.x += deltaX;
             this.y += deltaY;
             if(this.x > this.game.mapSideLength) this.x = this.game.mapSideLength;
             if(this.y > this.game.mapSideLength) this.y = this.game.mapSideLength;
             if(this.x < 0) this.x = 0;
             if(this.y < 0) this.y = 0;
-            this.emitter.emit("update");
+            this.hasUpdates = true;
+            this.emitter.emit("update", lastPosX, lastPosY);
         }
         return true;
     }
@@ -163,57 +151,59 @@ class Entity
         }
         else if(this.state === Entity.States.HARVESTING)
         {
-            if(!this.carrying)
+            if(this.type === "worker")
             {
-                this.targetHouse = null;
-                if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
+                if(!this.carrying)
                 {
-                    this.move();
-                }
-                else
-                {
-                    this.carrying = true;
-                    if(this.target.type == "cave")
-                    {
-                        this.target.changeResources(-1); //todo: make variable
-                    }
-                    this.waitSteps = 60; //todo: make variable
-                }
-            }
-            else
-            {
-                if(this.targetHouse == null){
-                    let minDistance = Infinity;
-                    for(let i = 0; i < this.game.entityList.length; i++)
-                    {
-                        let ent = this.game.entityList[i];
-                        if((ent.type == "house" && ent.owner === this.owner) && Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2) < minDistance)
-                        {
-                            this.targetHouse = ent;
-                            minDistance = Math.sqrt((ent.x-this.x)**2 + (ent.y-this.y)**2);
-                        }
-                    }
-                }
-                if(this.targetHouse != null)
-                {
-                    let targetCave = this.target;
-                    this.target = this.targetHouse;
-                    let diffX = this.target.x - this.x;
-                    let diffY = this.target.y - this.y;
-                    targetDistSqr = diffX ** 2 + diffY ** 2;
-                    console.log(targetDistSqr);
+                    this.targetHouse = null;
                     if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
                     {
                         this.move();
                     }
                     else
                     {
-                        this.owner.resources += 1; //todo: make variable
-                        this.carrying = false;
-                        this.emitter.emit("resource");
+                        this.carrying = true;
+                        if(this.target.type == "cave")
+                        {
+                            this.target.changeResources(-1); //todo: make variable
+                        }
                         this.waitSteps = 60; //todo: make variable
                     }
-                    this.target = targetCave;
+                }
+                else
+                {
+                    if(this.targetHouse == null){
+                        let minDistance = Infinity;
+                        for(let i = 0; i < this.owner.ownedEntities.length; i++)
+                        {
+                            let ent = this.owner.ownedEntities[i];
+                            if((ent.type === "house" && ent.owner === this.owner) && (ent.x-this.x)**2 + (ent.y-this.y)**2 < minDistance ** 2)
+                            {
+                                this.targetHouse = ent;
+                                minDistance = (ent.x-this.x)**2 + (ent.y-this.y)**2;
+                            }
+                        }
+                    }
+                    if(this.targetHouse != null)
+                    {
+                        let targetCave = this.target;
+                        this.target = this.targetHouse;
+                        let diffX = this.target.x - this.x;
+                        let diffY = this.target.y - this.y;
+                        targetDistSqr = diffX ** 2 + diffY ** 2;
+                        if(targetDistSqr > this.stopMoveHarvestRadius ** 2)
+                        {
+                            this.move();
+                        }
+                        else
+                        {
+                            this.owner.resources += 1; //todo: make variable
+                            this.carrying = false;
+                            this.emitter.emit("resource");
+                            this.waitSteps = 60; //todo: make variable
+                        }
+                        this.target = targetCave;
+                    }
                 }
             }
         }
@@ -223,7 +213,7 @@ class Entity
         this.emitter.emit("destroy");
         this.game.emitter.removeListener("update", this._update);
         this.emitter.removeAllListeners();
-        this.game.entityList.splice(this.game.entityList.indexOf(this), 1);
+        this.game.removeEntity(this);
         if(typeof this.owner === "object")
         {
             for(let i = this.owner.ownedEntities.length - 1; i >= 0; i--)
@@ -235,22 +225,14 @@ class Entity
                 }
             }
         }
+        if(this.type === "house")
+        {
+            console.log(this.owner.getOpposingPlayer().checkWin());
+        }
     }
     detectCollisions(checkX, checkY)
     {
-        let entityNum = this.game.entityList.length;
-        for(var i = 0; i < entityNum; i++)
-        {
-            let selfRad = this.radius;
-            let entCheck = this.game.entityList[i]
-            let checkRad = entCheck.radius;
-            //todo: can use squared distance here
-            if((Math.sqrt((entCheck.x - checkX) ** 2 + (entCheck.y - checkY) ** 2) <= (selfRad + checkRad) && entCheck != this))
-            {
-                return true;
-            }
-        }
-        return false;
+        return this.game.checkCollision({ x: checkX, y: checkY, radius: this.radius, id: this.id });
     }
     damageThis(amount)
     {
