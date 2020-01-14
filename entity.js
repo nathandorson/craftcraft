@@ -227,7 +227,15 @@ class Entity
         }
         if(this.type === "house")
         {
-            console.log(this.owner.getOpposingPlayer().checkWin());
+            try
+            {
+                let otherPlayer = this.owner.getOpposingPlayer();
+                console.log(otherPlayer.checkWin());
+            }
+            catch(e)
+            {
+                debugger;
+            }
         }
     }
     detectCollisions(checkX, checkY)
