@@ -1,4 +1,4 @@
-//initially based on quadtree made for regenerativep/jsario
+//based on quadtree made for regenerativep/jsario
 class Quadtree
 {
     constructor(x, y, width, height, parent)
@@ -210,7 +210,7 @@ class Quadtree
             }
             catch(e)
             {
-                //
+                //if we reach this, tree was likely changed after the if statement _somehow_
             }
         }
         if(this.items != null)

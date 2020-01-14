@@ -294,12 +294,7 @@ class Player
     }
     getOpposingPlayer()
     {
-        for(let i = 0; i < this.game.players.length; i++)
-        {
-            let pl = this.game.players[i];
-            if(pl != this) return pl;
-        }
-        return null;
+        return this.game.players[this.game.players.length - this.game.players.indexOf(this) - 1];
     }
 }
 /**https://machinesaredigging.com/2014/04/27/binary-insert-how-to-keep-an-array-sorted-as-you-insert-data-in-it/
@@ -552,6 +547,7 @@ class GameBoard
                 loc = { x: Math.random() * this.mapSideLength, y: Math.random() * this.mapSideLength };
             }
             player.addEntity(new Entity("house", this.requestId(), loc.x, loc.y, 1, this, player));
+            this.players.push(player);
             return player;
         }
         return null;
@@ -610,10 +606,13 @@ class GameBoard
             let targetEntity = nearbyEntities[i];
             if(entity.id != targetEntity.id)
             {
-                let distSqr = distanceToSqr(entity, targetEntity);
-                if(distSqr < (entity.radius + targetEntity.radius) ** 2)
-                {
-                    return true;
+                if(!(entity.type == "worker" && targetEntity.owner == entity.owner && (targetEntity.type == "worker" || targetEntity.type == "fighter")))
+                { //workers do not collide with friendly workers or friendly fighters
+                    let distSqr = distanceToSqr(entity, targetEntity);
+                    if(distSqr < (entity.radius + targetEntity.radius) ** 2)
+                    {
+                        return true;
+                    }
                 }
             }
         }
