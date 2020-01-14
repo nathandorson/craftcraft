@@ -51,7 +51,7 @@ class Entity
             this.radius = 20;
             this.moveSpeed = 0;
             let mapSideLength = 1280
-            if((this.x == 300 && this.y == mapSideLength - 300) && (this.x == mapSideLength - 300 && this.y == 300)){
+            if((this.x == 300 && this.y == mapSideLength - 300) || (this.x == mapSideLength - 300 && this.y == 300)){
                 this.isBigHouse = true;
                 this.isBase = true;
             }
@@ -177,7 +177,7 @@ class Entity
                         for(let i = 0; i < this.owner.ownedEntities.length; i++)
                         {
                             let ent = this.owner.ownedEntities[i];
-                            if((ent.type === "house" && ent.owner === this.owner) && (ent.x-this.x)**2 + (ent.y-this.y)**2 < minDistance ** 2)
+                            if((ent.type === "house" && ent.owner === this.owner) && (ent.x-this.x)**2 + (ent.y-this.y)**2 < minDistance)
                             {
                                 this.targetHouse = ent;
                                 minDistance = (ent.x-this.x)**2 + (ent.y-this.y)**2;
@@ -227,7 +227,15 @@ class Entity
         }
         if(this.type === "house")
         {
-            console.log(this.owner.getOpposingPlayer().checkWin());
+            try
+            {
+                let otherPlayer = this.owner.getOpposingPlayer();
+                console.log(otherPlayer.checkWin());
+            }
+            catch(e)
+            {
+                debugger;
+            }
         }
     }
     detectCollisions(checkX, checkY)

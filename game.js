@@ -254,12 +254,7 @@ class Player
     }
     getOpposingPlayer()
     {
-        for(let i = 0; i < this.game.players.length; i++)
-        {
-            let pl = this.game.players[i];
-            if(pl != this) return pl;
-        }
-        return null;
+        return this.game.players[this.game.players.length - this.game.players.indexOf(this) - 1];
     }
 }
 /**https://machinesaredigging.com/2014/04/27/binary-insert-how-to-keep-an-array-sorted-as-you-insert-data-in-it/
@@ -512,6 +507,7 @@ class GameBoard
                 loc = { x: Math.random() * this.mapSideLength, y: Math.random() * this.mapSideLength };
             }
             player.addEntity(new Entity("house", this.requestId(), loc.x, loc.y, 1, this, player));
+            this.players.push(player);
             return player;
         }
         return null;
