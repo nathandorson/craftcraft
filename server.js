@@ -242,7 +242,14 @@ class ConnectedClient
     }
     destroy()
     {
-        this.player.destroy();
+        if(this.player != null)
+        {
+            this.player.destroy();
+        }
+        else
+        {
+            console.log("player was null for some reason when trying to destroy it")
+        }
         clientList.splice(clientList.indexOf(this), 1);
         console.log("removed client");
     }
