@@ -97,6 +97,10 @@ function getUnitCreationInformation(unit, player)
         isFriendly: unit.owner == player
     };
 }
+/**
+ * The class for a client allows the server to keep track of the different players connected to the game
+ * and send them updates to the state of the game so everyone knows what is going on
+ */
 class ConnectedClient
 {
     constructor(socket)
@@ -105,6 +109,9 @@ class ConnectedClient
         this.targetPlayer = -1;
         this.player = null;
         this.queuedUpdates = [];
+        /**
+         * Sends information about the creation of a new entity to the client
+         */
         this.createUnit = (unit, sendToAll, player) => {
             //send create event to client
             if(sendToAll)
@@ -123,6 +130,9 @@ class ConnectedClient
                 if(typeof unit.id === "undefined") debugger;
             }
         };
+        /**
+         * Sends information about the updated position and action of an entity to the client
+         */
         this.updateUnit = (unit, sendToAll) => { //only update if friendly unit or close to friendly unit
             //send updated information to client
             let data;
@@ -154,6 +164,9 @@ class ConnectedClient
                 this.socket.send(data);
             }
         };
+        /**
+         * Lets the client know that a unit has been destroyed (and specifies which unit)
+         */
         this.destroyUnit = (unit, sendToAll) => {
             //tell client unit is no more
             let id;
@@ -190,8 +203,10 @@ class ConnectedClient
                 this.socket.send(data);
             }
         };
+        /** 
+         * Tells the client how many resources they now have
+         */
         this.updateResources = (amt, sendToAll) => {
-            //tell client to update resource amount
             let data = JSON.stringify({
                 type: "updateResources",
                 amount: amt
@@ -209,6 +224,9 @@ class ConnectedClient
             }
         };
     }
+    /**
+     * Updates the client about all relevant entities
+     */
     update()
     {
         if(this.player != null)
@@ -220,6 +238,10 @@ class ConnectedClient
             }
         }
     }
+    /**
+     * Links a player to the client. The player object contains more game specific information,
+     * while the client object is used primarily for communication
+     */
     setPlayer(player)
     {
         this.player = player;
@@ -233,6 +255,9 @@ class ConnectedClient
         player.emitter.on("resource", this.updateResources);
         this.sendWorld();
     }
+    /**
+     * Sends the world to the connected client
+     */
     sendWorld()
     {
         this.socket.send(JSON.stringify({
@@ -240,6 +265,9 @@ class ConnectedClient
             worldMap: game.map
         }));
     }
+    /**
+     * Removes the client and player from the game
+     */
     destroy()
     {
         if(this.player != null)
