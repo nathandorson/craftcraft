@@ -61,40 +61,51 @@ class Player
         {
             let minDistance = Infinity;
             let targetHouse = null;
-            for(let i = 0; i < entityList.length; i++)
+            for(let i = 0; i < this.ownedEntities.length; i++)
             {
-                let ent = entityList[i];
+                let ent = this.ownedEntities[i];
                 if((ent.type === "house" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
                 {
                     targetHouse = ent;
                     minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
                 }
             }
-            let totalDist = entity.distanceTo(targetHouse);
-            if(totalDist > 100)
+            if(targetHouse != null)
             {
-                entity.x = entity.x * 100 / totalDist;
-                entity.y = entity.y * 100 / totalDist;
+                let totalDist = distanceTo(targetHouse, entity);
+                if(totalDist > 100)
+                {
+                    let ux = (entity.x - targetHouse.x) / totalDist;
+                    let uy = (entity.y - targetHouse.y) / totalDist;
+                    entity.x = targetHouse.x + ux * 100;
+                    entity.y = targetHouse.y + uy * 100;
+                }
             }
         }
         if(entity.type == "house")
         {
+            //todo: make a general house finding function
             let minDistance = Infinity;
             let targetWorker = null;
-            for(let i = 0; i < entityList.length; i++)
+            for(let i = 0; i < this.ownedEntities.length; i++)
             {
-                let ent = entityList[i];
+                let ent = this.ownedEntities[i];
                 if((ent.type === "worker" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
                 {
                     targetWorker = ent;
                     minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
                 }
             }
-            let totalDist = entity.distanceTo(targetWorker);
-            if(totalDist > 100)
+            if(targetWorker != null)
             {
-                entity.x = entity.x * 100 / totalDist;
-                entity.y = entity.y * 100 / totalDist;
+                let totalDist = distanceTo(targetWorker, entity);
+                if(totalDist > 100)
+                {
+                    let ux = (entity.x - targetWorker.x) / totalDist;
+                    let uy = (entity.y - targetWorker.y) / totalDist;
+                    entity.x = targetWorker.x + ux * 100;
+                    entity.y = targetWorker.y + uy * 100;
+                }
             }
         }
         if(entity != null)
@@ -491,6 +502,7 @@ class GameBoard
             { x: 160, y: this.mapSideLength - 160 }
         ];
         this.tree = new Quadtree(0, 0, this.mapSideLength, this.mapSideLength, null);
+        this.tree.maxItems = 4;
         this.generateMap();
     }
     generateMap()
