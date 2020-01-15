@@ -57,6 +57,46 @@ class Player
         {
             return; //dont make it if the player does not have enough resources
         } //note, this will currently assume that any entity not in the price list is free
+        if(entity.type == "worker" || entity.type == "fighter")
+        {
+            let minDistance = Infinity;
+            let targetHouse = null;
+            for(let i = 0; i < entityList.length; i++)
+            {
+                let ent = entityList[i];
+                if((ent.type === "house" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
+                {
+                    targetHouse = ent;
+                    minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
+                }
+            }
+            let totalDist = entity.distanceTo(targetHouse);
+            if(totalDist > 100)
+            {
+                entity.x = entity.x * 100 / totalDist;
+                entity.y = entity.y * 100 / totalDist;
+            }
+        }
+        if(entity.type == "house")
+        {
+            let minDistance = Infinity;
+            let targetWorker = null;
+            for(let i = 0; i < entityList.length; i++)
+            {
+                let ent = entityList[i];
+                if((ent.type === "worker" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
+                {
+                    targetWorker = ent;
+                    minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
+                }
+            }
+            let totalDist = entity.distanceTo(targetWorker);
+            if(totalDist > 100)
+            {
+                entity.x = entity.x * 100 / totalDist;
+                entity.y = entity.y * 100 / totalDist;
+            }
+        }
         if(entity != null)
         {
             this.ownedEntities.push(entity);
