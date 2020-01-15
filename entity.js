@@ -76,17 +76,32 @@ class Entity
         let dist = Math.sqrt(distSqr);
         let deltaX = (diffX / dist) * this.moveSpeed;
         let deltaY = (diffY / dist) * this.moveSpeed;
-        if(!this.detectCollisions(this.x + deltaX, this.y + deltaY)){
-            let lastPosX = this.x, lastPosY = this.y;
-            this.x += deltaX;
-            this.y += deltaY;
-            if(this.x > this.game.mapSideLength) this.x = this.game.mapSideLength;
-            if(this.y > this.game.mapSideLength) this.y = this.game.mapSideLength;
-            if(this.x < 0) this.x = 0;
-            if(this.y < 0) this.y = 0;
-            this.hasUpdates = true;
-            this.emitter.emit("update", lastPosX, lastPosY);
+        let lastPosX = this.x, lastPosY = this.y;
+        this.x += deltaX;
+        this.y += deltaY;
+        let collidedEnts = this.detectCollisions(this.x, this.y);
+        for(let i = 0; i < collidedEnts.length; i++)
+        {
+            let ent = collidedEnts[i];
+            let sqrDist = (this.x - ent.x)**2 + (this.y - ent.y)**2;
+            let minSqrDist = (this.radius + ent.radius)**2;
+            if(sqrDist < minSqrDist)
+            {
+                let actualDist = Math.sqrt(sqrDist);
+                let minDist = this.radius + ent.radius;
+                let correctionDist = actualDist - minDist;
+                let ux = (ent.x - this.x)/actualDist;
+                let uy = (ent.y - this.y)/actualDist;
+                this.x += correctionDist*ux;
+                this.y += correctionDist*uy;
+            }
         }
+        if(this.x > this.game.mapSideLength) this.x = this.game.mapSideLength;
+        if(this.y > this.game.mapSideLength) this.y = this.game.mapSideLength;
+        if(this.x < 0) this.x = 0;
+        if(this.y < 0) this.y = 0;
+        this.hasUpdates = true;
+        this.emitter.emit("update", lastPosX, lastPosY);
         return true;
     }
     update()

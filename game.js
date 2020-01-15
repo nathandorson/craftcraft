@@ -561,22 +561,20 @@ class GameBoard
         let nearbyEntities = this.tree.getItemsIn((x, y, wid, hgt) => {
             return rectangleOverlapsCircle(x, y, x + wid, y + hgt, entity.x, entity.y, fogViewDistance); //fogViewDistance technically arbitrary for this purpose. //todo: fix
         });
+        let collidedEntities = [];
         for(let i = 0; i < nearbyEntities.length; i++)
         {
             let targetEntity = nearbyEntities[i];
             if(entity.id != targetEntity.id)
             {
-                if(!(entity.type == "worker" && targetEntity.owner == entity.owner && (targetEntity.type == "worker" || targetEntity.type == "fighter")))
-                { //workers do not collide with friendly workers or friendly fighters
-                    let distSqr = distanceToSqr(entity, targetEntity);
-                    if(distSqr < (entity.radius + targetEntity.radius) ** 2)
-                    {
-                        return true;
-                    }
-                }
+                let distSqr = distanceToSqr(entity, targetEntity);
+                if(distSqr < (entity.radius + targetEntity.radius) ** 2)
+                {
+                    collidedEntities.push(targetEntity);
+                }  
             }
         }
-        return false;
+        return collidedEntities;
     }
 }
 module.exports = GameBoard;
