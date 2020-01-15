@@ -72,7 +72,7 @@ var receivedActions = {
             z = game.map[cellx][celly].height;
         }
         let entity = new Entity(entityType, id, x, y, z, game, cl.player);
-        if(!game.checkCollision(entity))
+        if(game.checkCollision(entity).length == 0)
         {
             cl.player.addEntity(entity);
         }
