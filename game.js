@@ -57,6 +57,46 @@ class Player
         {
             return; //dont make it if the player does not have enough resources
         } //note, this will currently assume that any entity not in the price list is free
+        if(entity.type == "worker" || entity.type == "fighter")
+        {
+            let minDistance = Infinity;
+            let targetHouse = null;
+            for(let i = 0; i < entityList.length; i++)
+            {
+                let ent = entityList[i];
+                if((ent.type === "house" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
+                {
+                    targetHouse = ent;
+                    minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
+                }
+            }
+            let totalDist = entity.distanceTo(targetHouse);
+            if(totalDist > 100)
+            {
+                entity.x = entity.x * 100 / totalDist;
+                entity.y = entity.y * 100 / totalDist;
+            }
+        }
+        if(entity.type == "house")
+        {
+            let minDistance = Infinity;
+            let targetWorker = null;
+            for(let i = 0; i < entityList.length; i++)
+            {
+                let ent = entityList[i];
+                if((ent.type === "worker" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
+                {
+                    targetWorker = ent;
+                    minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
+                }
+            }
+            let totalDist = entity.distanceTo(targetWorker);
+            if(totalDist > 100)
+            {
+                entity.x = entity.x * 100 / totalDist;
+                entity.y = entity.y * 100 / totalDist;
+            }
+        }
         if(entity != null)
         {
             this.ownedEntities.push(entity);
@@ -561,22 +601,20 @@ class GameBoard
         let nearbyEntities = this.tree.getItemsIn((x, y, wid, hgt) => {
             return rectangleOverlapsCircle(x, y, x + wid, y + hgt, entity.x, entity.y, fogViewDistance); //fogViewDistance technically arbitrary for this purpose. //todo: fix
         });
+        let collidedEntities = [];
         for(let i = 0; i < nearbyEntities.length; i++)
         {
             let targetEntity = nearbyEntities[i];
             if(entity.id != targetEntity.id)
             {
-                if(!(entity.type == "worker" && targetEntity.owner == entity.owner && (targetEntity.type == "worker" || targetEntity.type == "fighter")))
-                { //workers do not collide with friendly workers or friendly fighters
-                    let distSqr = distanceToSqr(entity, targetEntity);
-                    if(distSqr < (entity.radius + targetEntity.radius) ** 2)
-                    {
-                        return true;
-                    }
-                }
+                let distSqr = distanceToSqr(entity, targetEntity);
+                if(distSqr < (entity.radius + targetEntity.radius) ** 2)
+                {
+                    collidedEntities.push(targetEntity);
+                }  
             }
         }
-        return false;
+        return collidedEntities;
     }
 }
 module.exports = GameBoard;
