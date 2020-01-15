@@ -1,4 +1,9 @@
 const EventEmitter = require("./eventemitter.js");
+/**
+ * Entity is a class used to keep track of all of the different things in the game
+ * Can be a house, worker, fighter, or cave
+ * Has many properties that keep track of important game things (like position, the entity's owner, the health, etc.)
+ */
 class Entity
 {
     constructor(type, id, x, y, z, game, owner)
@@ -28,6 +33,7 @@ class Entity
         this.game.emitter.on("update", this._update);
         this.state = Entity.States.IDLE;
         this.target = null;
+        //Different construction depending on what type of entity it is
         if(type=="worker")
         {
             this.health = 3;
@@ -66,6 +72,10 @@ class Entity
             };
         }
     }
+    /**
+     * Move takes the entity and moves it towards a target, which is either another entity, or a position
+     * Move also includes code to manage collisions between entities so that they do not get stuck in one another
+     */
     move()
     {
         if(this.target == null) return false;
@@ -104,6 +114,9 @@ class Entity
         this.emitter.emit("update", lastPosX, lastPosY);
         return true;
     }
+    /**
+     * Called every game tick, figures out what the entity is currently doing, and then does that
+     */
     update()
     {
         if(this.waitSteps > 0)
@@ -223,6 +236,9 @@ class Entity
             }
         }
     }
+    /**
+     * Destroys this entity and removes it from all applicable locations
+     */
     destroy()
     {
         this.emitter.emit("destroy");
@@ -253,10 +269,16 @@ class Entity
             }
         }
     }
+    /**
+     * Detects collisions with all nearby entities at a given x and y location
+     */
     detectCollisions(checkX, checkY)
     {
         return this.game.checkCollision({ x: checkX, y: checkY, radius: this.radius, id: this.id });
     }
+    /**
+     * Does damage to this entity, possibly killing it
+     */
     damageThis(amount)
     {
         this.health -= amount;
@@ -267,6 +289,9 @@ class Entity
         }
     }
 }
+/**
+ * Different things that the entity can currently be doing. They are pretty self-explanatory
+ */
 Entity.States = {
     IDLE: 0,
     MOVING: 1,
