@@ -6,6 +6,16 @@ const EventEmitter = require("./eventemitter.js");
  */
 class Entity
 {
+    /**
+     * creates an entity
+     * @param {string} type the type of entity
+     * @param {number} id id number
+     * @param {number} x x pos
+     * @param {number} y y pos
+     * @param {number} z height
+     * @param {GameBoard} game a reference to the game world
+     * @param {Player} owner a reference to the player owner of this entity
+     */
     constructor(type, id, x, y, z, game, owner)
     {
         this.type = type;
@@ -16,29 +26,77 @@ class Entity
         this.game = game;
         this.owner = owner;
         
+        /**
+         * radius of this entity
+         */
+        this.radius = 1;
+        /**
+         * if this entity has changed positions since the last time the updates were transmitted to the client
+         */
         this.hasUpdates = false;
+        /**
+         * number of game ticks to not do anything
+         */
         this.waitSteps = 0;
+        /**
+         * pixels per tick to move
+         */
         this.moveSpeed = 1;
+        /**
+         * distance before entity stops moving toward target
+         */
         this.stopMoveRadius = 1;
+        /**
+         * distance before entity stops moving towards harvest target
+         */
         this.stopMoveHarvestRadius = 32;
+        /**
+         * distance before entity stops moving towards victim
+         */
         this.stopMoveAttackRadius = 20;
+        /**
+         * amount of damage entity does to a victim
+         */
         this.damage = 1;
+        /**
+         * number of game ticks between attacks
+         */
         this.damageCooldownMax = 60;
+        /**
+         * current number of game ticks before the next attack
+         */
         this.damageCooldown = 0;
+        /**
+         * amount of health that the entity has
+         */
         this.health = 5;
+        /**
+         * event emitter to emit events about the entity
+         */
         this.emitter = new EventEmitter();
+        /**
+         * the current state that the entity has
+         */
+        this.state = Entity.States.IDLE;
+        /**
+         * the entities target
+         */
+        this.target = null;
+        
         var _this = this;
+        //get onto the game's update loop so that we can update ourselves
         this._update = () => { _this.update(); };
         this._oupdate = this.update;
         this.game.emitter.on("update", this._update);
-        this.state = Entity.States.IDLE;
-        this.target = null;
         //Different construction depending on what type of entity it is
         if(type=="worker")
         {
             this.health = 3;
             this.damage = 1;
             this.radius = 5;
+            /**
+             * if we are carrying something from the cave
+             */
             this.carrying = false;
             this.targetHouse = null;
         }
@@ -52,19 +110,22 @@ class Entity
         else if(type=="house")
         {
             this.health = 30;
-            this.isBigHouse = false;
-            this.isBase = false;
+            // this.isBigHouse = false;
+            // this.isBase = false;
             this.radius = 20;
             this.moveSpeed = 0;
             let mapSideLength = 1280
-            if((this.x == 300 && this.y == mapSideLength - 300) || (this.x == mapSideLength - 300 && this.y == 300)){
-                this.isBigHouse = true;
-                this.isBase = true;
-            }
+            // if((this.x == 300 && this.y == mapSideLength - 300) || (this.x == mapSideLength - 300 && this.y == 300)){
+            //     this.isBigHouse = true;
+            //     this.isBase = true;
+            // }
         }
         else if(type=="cave")
         {
             this.health = 50;
+            /**
+             * number of resources before the cave can no longer be used
+             */
             this.resourcesLeft = 1000000;
             this.changeResources = function(amt)
             {
@@ -78,8 +139,8 @@ class Entity
      */
     move()
     {
-        if(this.target == null) return false;
-        if(this.moveSpeed == 0) return true;
+        if(this.target == null) return false; //can't move to a nonexistant target
+        if(this.moveSpeed == 0) return true; //can't move if we have no speed
         let diffX = this.target.x - this.x;
         let diffY = this.target.y - this.y;
         let distSqr = diffX ** 2 + diffY ** 2;
