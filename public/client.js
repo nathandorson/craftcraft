@@ -270,6 +270,7 @@ function drawWorld()
     }
 }
 var receivedActions = {
+    //if the client recieves the map they will save it and do some updates
     sendMap: function(data)
     {
         worldMap = data.worldMap;
@@ -285,6 +286,7 @@ var receivedActions = {
         }
         cam.updateLimits();
     },
+    //if the client recieves an entity creation, they will add it to the list of entities they know about
     createEntity: function(data)
     {
         let ent = new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z);
@@ -294,6 +296,7 @@ var receivedActions = {
             friendlyEntityList.push(ent);
         }
     },
+    //if the client recieves an update to an entity they will update that entity
     updateEntity: function(data)
     {
         id = data.id;
@@ -305,6 +308,7 @@ var receivedActions = {
             ent.z = data.z;
         }
     },
+    //if the client recieves info saying an entity is destroyed they will get rid of it from the list of entities they know about
     destroyEntity: function(data)
     {
         let id = data.id;
@@ -328,11 +332,13 @@ var receivedActions = {
             }
         }
     },
+    //if the client is told how many resources they have, they will keep track of that
     updateResources: function(data)
     {
         resources = data.amount;
     }
 }
+//attempts to connect to a specified ip address
 function connect(target)
 {
     if(ws != null)
@@ -340,6 +346,7 @@ function connect(target)
         ws.close();
     }
     ws = new WebSocket(target);
+    //when a connection is opened the client sends a JSON object to the server saying that they have connected
     ws.onopen = function() {
         console.log("connected to " + target);
         ws.send(JSON.stringify({
@@ -347,6 +354,7 @@ function connect(target)
         }));
         connected = true;
     };
+    //when a connection is closed the game basically stops
     ws.onclose = function() {
         console.log("disconnected from " + target);
         connected = false;
@@ -354,7 +362,8 @@ function connect(target)
         friendlyEntityList = [];
         selectedEntities = [];
         worldMap = [];
-    }
+    };
+    //when the client recieves a message from the server, they will do stuff with it based on what it is
     ws.onmessage = function(ev) {
         let data = JSON.parse(ev.data);
         if(typeof receivedActions[data.type] !== "undefined")
@@ -363,7 +372,7 @@ function connect(target)
         }
     }
 }
-
+//sets up the screen and the connection
 function setup()
 {
     createCanvas(windowWidth, windowHeight);
@@ -371,6 +380,7 @@ function setup()
     cam = new Camera();
     connect(startupConnectionAddress);
 }
+//resizes the window on the monitor
 function windowResized()
 {
     resizeCanvas(windowWidth, windowHeight);
@@ -378,6 +388,7 @@ function windowResized()
 }
 
 var theight = null;
+//draws text with a background behind it
 function drawContrastedText(textStr, x, y, padding)
 {
     if(theight == null) theight = textAscent() + textDescent();
@@ -389,6 +400,7 @@ function drawContrastedText(textStr, x, y, padding)
     textAlign(LEFT, TOP);
     text(textStr, x, y);
 }
+//converts game location to screen location
 function gameToUICoord(x, y)
 {
     return [
@@ -396,6 +408,7 @@ function gameToUICoord(x, y)
         (y - cam.y) * cam.scaleLevel
     ];
 }
+//converts screen location to game location
 function UIToGameCoord(x, y)
 {
     return [
@@ -403,6 +416,7 @@ function UIToGameCoord(x, y)
         (y / cam.scaleLevel) + cam.y
     ];
 }
+//draws the game and the user interface
 function draw()
 {
     background(255);
