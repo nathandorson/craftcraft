@@ -91,7 +91,8 @@ class Entity
         //Different construction depending on what type of entity it is
         if(type=="worker")
         {
-            this.health = 3;
+            this.health = 4;
+            this.moveSpeed = 0.8;
             this.damage = 1;
             this.radius = 5;
             /**
@@ -103,7 +104,7 @@ class Entity
         else if(type=="fighter")
         {
             this.health = 5;
-            this.moveSpeed = 2;
+            this.moveSpeed = 1;
             this.damage = 2;
             this.radius = 7;
         }
