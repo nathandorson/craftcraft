@@ -378,6 +378,8 @@ function windowResized()
 }
 
 var theight = null;
+
+//draw text with black background, used to show resources and prompt unit creation
 function drawContrastedText(textStr, x, y, padding)
 {
     if(theight == null) theight = textAscent() + textDescent();
@@ -389,6 +391,8 @@ function drawContrastedText(textStr, x, y, padding)
     textAlign(LEFT, TOP);
     text(textStr, x, y);
 }
+
+//convert overall coordinates to coordinates the client sees
 function gameToUICoord(x, y)
 {
     return [
@@ -396,6 +400,8 @@ function gameToUICoord(x, y)
         (y - cam.y) * cam.scaleLevel
     ];
 }
+
+//convert coordinates the client sees to overall coordinates
 function UIToGameCoord(x, y)
 {
     return [
@@ -405,30 +411,30 @@ function UIToGameCoord(x, y)
 }
 function draw()
 {
-    background(255);
+    background(255); //baclground color
     push();
     cam.update();
     drawWorld();
     pop();
     image(shadowSurface, 0, 0);
     fill(0,0,255,100)
-    if(mouseIsPressed)
+    if(mouseIsPressed) //draw aslection rectangle
     {
         let selCoord = gameToUICoord(selectionXi, selectionYi);
         rect(selCoord[0], selCoord[1], mouseX - selCoord[0], mouseY - selCoord[1]);
     }
     if(entityPrimed)
     {
-        var messageText = "Press 1 for a house, 2 for a fighter, 3 for a worker.";
+        var messageText = "Press 1 for a house, 2 for a fighter, 3 for a worker."; //prompt user
         drawContrastedText(messageText, 20, 52);
 
-        let minDist = Infinity;
+        let minDist = Infinity; 
         let coordinates = UIToGameCoord(mouseX,mouseY);
         let x = coordinates[0];
         let y = coordinates[1];
-        for(let i = 0; i < entityList.length; i++)
+        for(let i = 0; i < entityList.length; i++) //find the closest valid (close to a house) spawnpoint for a new ent
         {
-            let ent = entityList[i];
+            let ent = entityList[i]; //bug: need to look at workers when placing a house
             if(ent.type == "house" && ent.isFriendly)
             {
                 let dist = Math.sqrt((x - ent.x)**2 + (y - ent.y)**2);
@@ -451,7 +457,7 @@ function draw()
         }
         let UIcoordinates = gameToUICoord(entCreationX,entCreationY);
         fill(0);
-        ellipse(UIcoordinates[0],UIcoordinates[1],10,10);
+        ellipse(UIcoordinates[0],UIcoordinates[1],10,10); //ellipse shows user where the ent will be placed
     }
     var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
     drawContrastedText(messageText, 20, 20);
