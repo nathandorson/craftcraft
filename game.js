@@ -296,6 +296,20 @@ function generatePerlinNoise(baseNoise /*2d float array*/, octaveCount /*int*/)
     }
     return perlinNoise;
 }
+function mirrorMapTerrain(terrain) //destructive
+{
+    let wid = terrain.length;
+    let hgt = terrain[0].length;
+    for(let i = 0; i < wid; i++)
+    {
+        for(let j = i; j < hgt; j++)
+        {
+            //j, i intentionally flipped
+            terrain[j][i] = terrain[i][j];
+        }
+    }
+    return terrain;
+}
 
 function forCircle(x, y, radius, begin, end, steps, action)
 {
@@ -330,7 +344,7 @@ class GameBoard
     {
         let whiteNoise = generateWhiteNoise(this.tileSideCount, this.tileSideCount);
         let perlinNoise = generatePerlinNoise(whiteNoise, 4);
-
+        perlinNoise = mirrorMapTerrain(perlinNoise);
         this.map = [];
         for(let i = 0; i < this.tileSideCount; i++)
         {
