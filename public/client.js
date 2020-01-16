@@ -1,15 +1,16 @@
 var worldSurface = null, lightSurface = null, shadowSurface = null;
 var entitySurfaces = {};
-var entityList = [];
-var friendlyEntityList = [];
-var selectedEntities = [];
-var mapSideLength = 1024, tileSideLength = 64;
-var worldMap = [];
-var lightDiameter = 200;
-var buildRadius = 100;
-var resources = 0;
-var gameWidth = 640, gameHeight = 640;
+var entityList = []; //the list of all entities that this client knows about
+var friendlyEntityList = []; //the list of entities that this client controls
+var selectedEntities = []; //the list of entities that the client currently has selected in order to move them or give them a command
+var mapSideLength = 1024, tileSideLength = 64; //the size of the game world, and the size of each differently colored tile in the world
+var worldMap = []; //a two dimensional array of tiles that is used to represent the world
+var lightDiameter = 200; //how far entities push back the shadows, allowing sight for the client
+var buildRadius = 100; //how far away from houses the client can build
+var resources = 0; // the number of resources this client owns
+var gameWidth = 640, gameHeight = 640; //the size of the screen
 var controlButtonPressed = false, shiftButtonPressed = false;
+//useful information about each of the different entity types and how they are represented
 var entityInfo = {
     worker: {
         radius: 5,
@@ -32,32 +33,38 @@ var entityInfo = {
         opposingColor: [255, 255, 255]
     }
 }
-var cam;
-var connected = false, ws = null;
+var cam; //the camera that is used to look around the game world
+var connected = false, ws = null; //if the client is connected, and what websocket they are connected to
 var selectionXi = 0, electionXf = 0, selectionYi = 0, selectionYf = 0;
 var entitySelectType = { DIRECT: 0, ADD: 1, REMOVE: 2 };
 var entityPrimed = false;
 var entCreationX = 0, entCreationY = 0;
+/**
+ * Class used to keep track of entities that the client knows about
+ */
 class Entity
 {
     constructor(type,id,isFriendly,x,y,z)
     {
-        this.type = type;
-        this.id = id;
-        this.isFriendly = isFriendly;
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.mainColor = [255, 255, 255];
-        this.outlineColor = [0, 0, 0];
-        this.outlineWidth = 1;
-        this.radius = 10;
+        this.type = type; //entity type
+        this.id = id; //entity id
+        this.isFriendly = isFriendly; //if the client owns the entity
+        this.x = x; //entity x location
+        this.y = y; //entity y location
+        this.z = z; //entity z location (not used at present)
+        this.mainColor = [255, 255, 255]; //entity's color
+        this.outlineColor = [0, 0, 0]; //entity's outline color
+        this.outlineWidth = 1; //the width of the outline of the entity
+        this.radius = 10; //the radius of this entity (they are just circles)
         let info = entityInfo[this.type];
         for(let prop in info)
         {
             this[prop] = info[prop];
         }
     }
+    /**
+     * The method that will draw this entity depending on what type of entity it is
+     */
     draw()
     {
         if(typeof entitySurfaces[this.type] === "undefined")
@@ -70,26 +77,30 @@ class Entity
         }
     }
 }
-
+/**
+ * A camera, so that the client can look around the game map
+ */
 class Camera
 {
     constructor()
     {
-        this.x = 0;
-        this.y = 0;
-        this.vx = 0;
-        this.vy = 0;
-        this.scaleLevel = 1.5;
-        this.panSpeedMultiplier = 12;
-        this.maxPanSpeed = 9;
-        this.panTriggerWidth = 100;
-        this.limitPercentage = 0.1;
+        this.x = 0; //camera x location (top left)
+        this.y = 0; //camera y location (top left)
+        this.vx = 0; //camera movevent speed in the x direction
+        this.vy = 0; //camera movement speed in the y direction
+        this.scaleLevel = 1.5; //the zoom level of the camera
+        this.panSpeedMultiplier = 12; //how fast the camera ramps up speed
+        this.maxPanSpeed = 9; //the max camera movement speed
+        this.panTriggerWidth = 100; //how close to the edge the mouse must be to trigger camera movement
+        this.limitPercentage = 0.1; //the limit on where the camera moves relative to the map (so you cannot go too far off the side of the map)
         this.updateLimits();
     }
+    //Zooms the camera to the current zoom level
     zoom()
     {
         scale(this.scaleLevel);
     }
+    //Changes the boundaries on camera for when the camera zooms
     updateLimits()
     {
         this.minx = -( width * this.limitPercentage );
@@ -97,6 +108,7 @@ class Camera
         this.maxx = gameWidth * this.scaleLevel - (width * (1 - this.limitPercentage));
         this.maxy = gameHeight * this.scaleLevel - (height * (1 - this.limitPercentage));
     }
+    //Moves the camera to its correct position. Called every draw() step so the camera is always in the correct spot
     pan()
     {
         this.vx = 0;
@@ -136,12 +148,14 @@ class Camera
         if(this.x > this.maxx) this.x = this.maxx;
         if(this.y > this.maxy) this.y = this.maxy;
     }
+    //Does all relevant movements for the camera. Done every draw() step
     update()
     {
         this.pan();
         this.zoom();
         translate(-this.x, -this.y);
     }
+    //Rescales the camera
     changeScale(newScale)
     {
         let widthChange = (width / newScale) - (width / this.scaleLevel);
@@ -152,6 +166,8 @@ class Camera
         this.updateLimits();
     }
 }
+//Looks through the list of entities that the client knows about, and returns the entity with
+//a specified id
 function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
@@ -168,6 +184,7 @@ function findEntityByID(id, remove=false)
     }
     return null;
 }
+//Adds an entity to the entity surface
 function updateEntitySurface(ent)
 {
     let surf = createGraphics(ent.radius * 2, ent.radius * 2);
@@ -178,6 +195,7 @@ function updateEntitySurface(ent)
     surf.ellipse(ent.radius, ent.radius, ent.radius * 2, ent.radius * 2);
     entitySurfaces[ent.type] = surf;
 }
+//Updates the world map so it can be drawn properly
 function updateWorldSurface()
 {
     if(worldSurface == null || worldSurface.width != gameWidth || worldSurface.height != gameHeight)
@@ -196,6 +214,8 @@ function updateWorldSurface()
         }
     }
 }
+//Much of the game world is obscured by shadows so that the client has incomplete information
+//This function handles the creation of shadowy areas
 function updateShadowSurface()
 {
     if(shadowSurface == null || shadowSurface.width != width || shadowSurface.height != height)
@@ -228,6 +248,7 @@ function updateShadowSurface()
         }
     }
 }
+//Draws the game world
 function drawWorld()
 {
     updateWorldSurface();
