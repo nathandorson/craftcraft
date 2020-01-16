@@ -287,11 +287,13 @@ var receivedActions = {
     destroyEntity: function(data)
     {
         let id = data.id;
+        console.log(id);
         for(let i = 0; i < entityList.length; i++)
         {
             let ent = entityList[i];
             if(ent.id == id)
             {
+                entityList.splice(i, 1);
                 if(ent.isFriendly)
                 {
                     for(j = 0; j < friendlyEntityList.length; j++)

@@ -91,9 +91,10 @@ class Entity
         //Different construction depending on what type of entity it is
         if(type=="worker")
         {
-            this.health = 3;
+            this.health = 6;
             this.damage = 1;
             this.radius = 5;
+            this.moveSpeed = 0.2;
             /**
              * if we are carrying something from the cave
              */
@@ -102,9 +103,9 @@ class Entity
         }
         else if(type=="fighter")
         {
-            this.health = 5;
-            this.moveSpeed = 2;
-            this.damage = 2;
+            this.health = 7;
+            this.moveSpeed = 0.5;
+            this.damage = 3;
             this.radius = 7;
         }
         else if(type=="house")
