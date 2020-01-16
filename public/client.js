@@ -436,6 +436,7 @@ function draw()
     drawContrastedText(messageText, 20, 20);
 }
 
+//find all friendly ents within a selection rectangle and add them to a list
 function selectEntities(xi, yi, xf, yf, selectType)
 {
     if(typeof selectType === "undefined")
@@ -447,7 +448,7 @@ function selectEntities(xi, yi, xf, yf, selectType)
     let highX = Math.max(xi,xf);
     let lowY = Math.min(yi,yf);
     let highY = Math.max(yi,yf);
-    for(let i = 0; i < entityList.length; i++)
+    for(let i = 0; i < entityList.length; i++) //add all friendly ents within rect to a list
     {
         let ent = entityList[i];
         if(ent.x > lowX && ent.x < highX && ent.y > lowY && ent.y < highY && ent.isFriendly)
@@ -455,11 +456,11 @@ function selectEntities(xi, yi, xf, yf, selectType)
             foundEntities.push(entityList[i]);
         }
     }
-    if(selectType === entitySelectType.DIRECT)
+    if(selectType === entitySelectType.DIRECT) //replace old list of selected ents with new list
     {
         selectedEntities = foundEntities;
     }
-    else if(selectType === entitySelectType.ADD)
+    else if(selectType === entitySelectType.ADD) //add new list to old list
     {
         for(let i = 0; i < foundEntities.length; i++)
         {
@@ -484,11 +485,12 @@ function selectEntities(xi, yi, xf, yf, selectType)
     }
 }
 
+//based on target coordinates, for each selected entity, find what kind of action they will take and tell the server
 function sendMove(x,y)
 {
     let DEFAULTRADIUS = 40;
     let targetId = -1;
-    for(let i = 0; i < entityList.length; i++)
+    for(let i = 0; i < entityList.length; i++) //if the player has targeted an ent, find that ent ant set targetId accordingly
     {
         let ent = entityList[i];
         if(!ent.isFriendly)
@@ -503,15 +505,15 @@ function sendMove(x,y)
     let target = null;
     if(targetId != -1)
     {
-        target = findEntityByID(targetId);
+        target = findEntityByID(targetId); // get target ent based on id
     }
     for(let i = 0; i < selectedEntities.length; i++)
     {
         let entity = selectedEntities[i];
-        if(entity.type !== "cave" && entity.type !== "house")
+        if(entity.type !== "cave" && entity.type !== "house")//if ent can move
         {
             let data = null;
-            if(entity.type === "worker" && target != null && target.type === "cave")
+            if(entity.type === "worker" && target != null && target.type === "cave") //if a worker targets a cave, start harvesting
             {
                 data = {
                     type: "doAction",
@@ -520,7 +522,7 @@ function sendMove(x,y)
                     targetId: targetId
                 };
             }
-            else if(target != null && target.type !== "cave")
+            else if(target != null && target.type !== "cave") //in any other case if an ent is targeted start attacking
             {
                 data = {
                     type: "doAction",
@@ -529,7 +531,7 @@ function sendMove(x,y)
                     targetId: targetId
                 };
             }
-            else
+            else //if no ent is targeted, move
             {
                 data = {
                     type: "doAction",
@@ -539,7 +541,7 @@ function sendMove(x,y)
                     y: y
                 };
             }
-            if(data != null)
+            if(data != null) //send data to server
             {
                 ws.send(JSON.stringify(data));
             }
@@ -595,11 +597,14 @@ function sendMove(x,y)
     //     }
     // }
 }
+
+//prime an entity
 function prepareEntity()
 {
     entityPrimed = true;
 }
 
+//send the server a message to create a new entity
 function createEntity(x,y,entType)
 {
     ws.send(JSON.stringify({
@@ -611,6 +616,7 @@ function createEntity(x,y,entType)
     entityPrimed = false;
 }
 
+//start selecting ents by dragging a rectangle over them
 function mousePressed()
 {
     if(mouseButton == LEFT)
@@ -620,6 +626,8 @@ function mousePressed()
         selectionYi = selCoord[1];
     }
 }
+
+//finish selecting ents by dragging a rectangle over them
 function mouseReleased()
 {
     if(mouseButton == LEFT)
@@ -639,7 +647,7 @@ function mouseReleased()
         selectEntities(selectionXi, selectionYi, selectionXf, selectionYf, mode);
     }
 }
-function mouseClicked()
+function mouseClicked() //right click to do action
 {
     if(mouseButton == RIGHT)
     {
@@ -648,7 +656,7 @@ function mouseClicked()
 }
 function keyPressed()
 {
-    if(entityPrimed)
+    if(entityPrimed) //player has pressed a button to create an ent
     {
         if(key=='1')
         {
@@ -663,11 +671,11 @@ function keyPressed()
             createEntity(entCreationX,entCreationY,"worker");
         }
     }
-    if(keyCode===UP_ARROW)
+    if(keyCode===UP_ARROW) //zoom out
     {
         cam.changeScale(cam.scaleLevel * 1.1);
     }
-    else if(keyCode===DOWN_ARROW)
+    else if(keyCode===DOWN_ARROW) //zoom in
     {
         cam.changeScale(cam.scaleLevel / 1.1);
     }
@@ -683,7 +691,7 @@ function keyPressed()
     {
         //something something attack with all selected units that are valid to do so
     }
-    else if(key=='c')
+    else if(key=='c') //begin to create an entity, a prompt will appear asking which kind
     {
         if(!entityPrimed)
         {
@@ -694,7 +702,7 @@ function keyPressed()
             entityPrimed = false;
         }
     }
-    else if(key=='s')
+    else if(key=='s') //action
     {
         sendMove(mouseX/cam.scaleLevel+cam.x,mouseY/cam.scaleLevel+cam.y);
     }
