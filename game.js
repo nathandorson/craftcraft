@@ -1,5 +1,6 @@
 var EventEmitter = require("./eventemitter.js");
 var Entity = require("./entity.js");
+var Quadtree = require("./quadtree.js");
 
 //if speed is cared about, comparison between squared
 //distances is faster than comparison between real distances
@@ -28,6 +29,7 @@ class Player
         this.ownedEntities = [];
         this.resources = 130;
         this.visibleEnemies = [];
+        this.updatedEntityList = [];
         var _this = this;
         this._update = () => { _this.update(); };
         this.game.emitter.on("update", this._update);
@@ -55,23 +57,79 @@ class Player
         {
             return; //dont make it if the player does not have enough resources
         } //note, this will currently assume that any entity not in the price list is free
+        if(entity.type == "worker" || entity.type == "fighter")
+        {
+            let minDistance = Infinity;
+            let targetHouse = null;
+            for(let i = 0; i < this.ownedEntities.length; i++)
+            {
+                let ent = this.ownedEntities[i];
+                if((ent.type === "house" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
+                {
+                    targetHouse = ent;
+                    minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
+                }
+            }
+            if(targetHouse != null)
+            {
+                let totalDist = distanceTo(targetHouse, entity);
+                if(totalDist > 100)
+                {
+                    let ux = (entity.x - targetHouse.x) / totalDist;
+                    let uy = (entity.y - targetHouse.y) / totalDist;
+                    entity.x = targetHouse.x + ux * 100;
+                    entity.y = targetHouse.y + uy * 100;
+                }
+            }
+        }
+        if(entity.type == "house")
+        {
+            //todo: make a general house finding function
+            let minDistance = Infinity;
+            let targetWorker = null;
+            for(let i = 0; i < this.ownedEntities.length; i++)
+            {
+                let ent = this.ownedEntities[i];
+                if((ent.type === "worker" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
+                {
+                    targetWorker = ent;
+                    minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
+                }
+            }
+            if(targetWorker != null)
+            {
+                let totalDist = distanceTo(targetWorker, entity);
+                if(totalDist > 100)
+                {
+                    let ux = (entity.x - targetWorker.x) / totalDist;
+                    let uy = (entity.y - targetWorker.y) / totalDist;
+                    entity.x = targetWorker.x + ux * 100;
+                    entity.y = targetWorker.y + uy * 100;
+                }
+            }
+        }
         if(entity != null)
         {
             this.ownedEntities.push(entity);
             this.changeResources(this.resources - price);
+            var _this = this;
+            entity.emitter.on("destroy", () => {
+                _this.emitter.emit("destroy", entity, true);
+            });
+            entity.emitter.on("update", (lx, ly) => {
+                _this.emitter.emit("update", entity);
+                this.game.tree.moveItem(entity, lx, ly);
+            });
+            entity.emitter.on("resource", () => {
+                _this.emitter.emit("resource", _this.resources, false);
+            });
+            this.game.addEntity(entity);
+            this.emitter.emit("create", entity, false);
         }
-        this.game.entityList.push(entity);
-        this.emitter.emit("create", entity, false);
-        var _this = this;
-        entity.emitter.on("destroy", () => {
-            _this.emitter.emit("destroy", entity, true);
-        });
-        entity.emitter.on("update", () => {
-            _this.emitter.emit("update", entity);
-        });
-        entity.emitter.on("resource", () => {
-            _this.emitter.emit("resource", _this.resources, false);
-        });
+        else
+        {
+            debugger;
+        }
     }
     changeResources(newResources)
     {
@@ -93,7 +151,7 @@ class Player
         if(entity != null)
         {
             entity.state = Entity.States.MOVING;
-            entity.target = {x: x, y: y};
+            entity.target = target;
         }
     }
     harvest(id, targetId)
@@ -131,7 +189,7 @@ class Player
             entity.state = Entity.States.ATTACKING;
             entity.target = target;
         }
-    }
+    }/*
     build(id, buildingType, x, y)
     {
         let entity = this.findOwnEntityById(id);
@@ -141,28 +199,55 @@ class Player
             entity.state = Entity.States.BUILDING;
             entity.target = building;
         }
-    }
+    }*/
     updateVisibleEnemies()
     {
         let newVisibleEnemies = [];
-        let entityList = this.game.getEntityList(this, true);
+        let tempUpdatedEntities = [];
         for(let i = 0; i < this.ownedEntities.length; i++)
         {
             let entity = this.ownedEntities[i];
-            for(let j = 0; j < entityList.length; j++)
+            let nearbyEntities = this.game.tree.getItemsIn((x, y, wid, hgt) => {
+                return rectangleOverlapsCircle(x, y, x + wid, y + hgt, entity.x, entity.y, fogViewDistance);
+            });
+            for(let j = 0; j < nearbyEntities.length; j++)
             {
-                let testEntity = entityList[j];
-                if(itemInArray(newVisibleEnemies, testEntity) || testEntity.owner == this)
+                let testEntity = nearbyEntities[j];
+                if(testEntity.owner == this)
                 {
                     continue;
                 }
                 //we have an entity that does not have us as the owner and is not already found
                 //find if it is within distance
-                if((entity.x - testEntity.x)**2 + (entity.y - testEntity.y)**2 < fogViewDistance ** 2)
+                if(distanceToSqr(entity, testEntity) < fogViewDistance ** 2)
                 {
                     //it is within distance
-                    newVisibleEnemies.push(testEntity);
+                    binaryInsert(testEntity.id, newVisibleEnemies); //binaryInsert does not add duplicates as a note
+                    if(testEntity.hasUpdates)
+                    {
+                        binaryInsert(testEntity.id, tempUpdatedEntities);
+                    }
                 }
+            }
+        }
+        for(let i = 0; i < tempUpdatedEntities.length; i++)
+        {
+            let ent = this.game.findEntityByID(tempUpdatedEntities[i]);
+            if(ent != null)
+            {
+                this.updatedEntityList.push(ent);
+            }
+            else
+            {
+                debugger;
+            }
+        }
+        for(let i = 0; i < this.ownedEntities.length; i++)
+        {
+            let ent = this.ownedEntities[i];
+            if(ent.hasUpdates)
+            {
+                this.updatedEntityList.push(ent);
             }
         }
         //find additions and removals
@@ -172,7 +257,7 @@ class Player
         //tell server those changes
         for(let i = 0; i < additions.length; i++)
         {
-            this.emitter.emit("create", additions[i], false, this);
+            this.emitter.emit("create", this.game.findEntityByID(additions[i]), false, this);
         }
         for(let i = 0; i < removals.length; i++)
         {
@@ -183,6 +268,92 @@ class Player
     {
         this.updateVisibleEnemies();
     }
+    getUpdatedEntities()
+    {
+        let entList = this.updatedEntityList;
+        this.updatedEntityList = [];
+        return entList;
+    }
+    destroy()
+    {
+        for(let i = 0; i < this.ownedEntities.length; i++)
+        {
+            let entity = this.ownedEntities[i];
+            this.game.removeEntity(entity);
+            console.log("destroying entity id " + entity.id);
+        }
+        this.game.removePlayer(this);
+    }
+    checkWin()
+    {
+        //currently set to win if you destroy all of the other player's houses
+        let otherPlayer = this.getOpposingPlayer();
+        let houseCount = 0;
+        for(let i = 0; i < otherPlayer.ownedEntities.length; i++)
+        {
+            let ent = otherPlayer.ownedEntities[i];
+            if(ent.type === "house")
+            {
+                houseCount++;
+            }
+        }
+        if(houseCount == 0)
+        {
+            return true;
+        }
+        return false;
+    }
+    getOpposingPlayer()
+    {
+        return this.game.players[this.game.players.length - this.game.players.indexOf(this) - 1];
+    }
+}
+/**https://machinesaredigging.com/2014/04/27/binary-insert-how-to-keep-an-array-sorted-as-you-insert-data-in-it/
+ * Example :
+ * var a = [2,7,9];
+ * binaryInsert(8, a);
+ * 
+ * It will output a = [2,7,8,9]
+ * 
+ */ //modified for ids
+function binaryInsert(value, array, startVal, endVal){
+
+	var length = array.length;
+	var start = typeof(startVal) != 'undefined' ? startVal : 0;
+	var end = typeof(endVal) != 'undefined' ? endVal : length - 1;//!! endVal could be 0 don't use || syntax
+	var m = start + Math.floor((end - start)/2);
+	
+	if(length == 0){
+		array.push(value);
+		return;
+	}
+
+	if(value > array[end]){
+		array.splice(end + 1, 0, value);
+		return;
+	}
+
+    if(value < array[start])
+    {
+		array.splice(start, 0, value);
+		return;
+	}
+
+	if(start >= end){
+		return;
+	}
+
+	if(value < array[m]){
+		binaryInsert(value, array, start, m - 1);
+		return;
+	}
+
+	if(value > array[m]){
+		binaryInsert(value, array, m + 1, end);
+		return;
+	}
+
+	//we don't insert duplicates
 }
 function itemInArray(arr, item)
 {
@@ -321,13 +492,19 @@ function forCircle(x, y, radius, begin, end, steps, action)
         action(x + Math.cos(angle) * radius, y - Math.sin(angle) * radius);
     }
 }
-
+//https://yal.cc/rectangle-circle-intersection-test/
+function rectangleOverlapsCircle(rx1, ry1, rx2, ry2, cx, cy, cr)
+{
+    let dx = cx - Math.max(rx1, Math.min(cx, rx2));
+    let dy = cy - Math.max(ry1, Math.min(cy, ry2));
+    return (dx ** 2 + dy ** 2) < (cr ** 2);
+}
 class GameBoard
 {
     constructor()
     {
         this.emitter = new EventEmitter();
-        this.entityList = [];
+        this.idMap = {};
         this.players = [];
         this.maxPlayers = 2;
         this.highestId = 0;
@@ -338,6 +515,8 @@ class GameBoard
             { x: this.mapSideLength - 160, y: 160 },
             { x: 160, y: this.mapSideLength - 160 }
         ];
+        this.tree = new Quadtree(0, 0, this.mapSideLength, this.mapSideLength, null);
+        this.tree.maxItems = 4;
         this.generateMap();
     }
     generateMap()
@@ -361,7 +540,7 @@ class GameBoard
         let _this = this;
         function createCave(x, y)
         {
-            _this.entityList.push(new Entity("cave", _this.requestId(), x, y, 1, _this, -1));
+            _this.addEntity(new Entity("cave", _this.requestId(), x, y, 1, _this, -1));
         }
         forCircle(132, 132, 100, Math.PI / 3, 4 * Math.PI / 3, 6, createCave);
         forCircle(this.mapSideLength - 132, this.mapSideLength - 132, 100, Math.PI * 4 / 3, Math.PI * 7 / 3, 4, createCave);
@@ -370,10 +549,7 @@ class GameBoard
     }
     update()
     {
-        for(let i = 0; i < this.entityList.length; i++)
-        {
-            this.entityList[i].update();
-        }
+        this.tree.forEach((entity) => { entity.update(); })
         this.emitter.emit("update");
     }
     requestId()
@@ -397,67 +573,74 @@ class GameBoard
                 loc = { x: Math.random() * this.mapSideLength, y: Math.random() * this.mapSideLength };
             }
             player.addEntity(new Entity("house", this.requestId(), loc.x, loc.y, 1, this, player));
+            this.players.push(player);
             return player;
         }
         return null;
     }
+    addEntity(ent)
+    {
+        this.tree.addItem(ent);
+        this.idMap[ent.id] = ent;
+    }
+    removeEntity(ent)
+    {
+        if(typeof ent === "number")
+        {
+            ent = this.findEntityByID(ent);
+        }
+        this.tree.removeItem(ent);
+        if(typeof this.idMap[ent.id] !== "undefined")
+        {
+            delete this.idMap[ent.id];
+        }
+    }
     findEntityByID(id)
     {
-        for(let i = 0; i < this.entityList.length; i++)
+        if(typeof this.idMap[id] !== "undefined")
         {
-            let entity = this.entityList[i];
-            if(entity.id == id)
-            {
-                return entity;
-            }
+            return this.idMap[id];
         }
         return null;
     }
     getEntityList(player, getAll)
-    { 
+    {
+        let ret = [];
         if(getAll)
         {
-            return this.entityList;
+            this.tree.forEach((entity) => { ret.push(entity); });
         }
-        let ret = [];
-        for(let i = 0; i < this.entityList.length; i++)
+        else
         {
-            if(this.entityList[i].player == player)
-            {
-                ret.push(this.entityList[i]);
-            }
-            else
-            {
-                for(let z = 0; z < this.entityList.length; z++)
-                {
-                    if(this.entityList[z].player != player && distanceTo(this.entityList[z], this.entityList[i]) < fogViewDistance){
-                        ret.push(this.entityList[i])
-                        break;
-                    }
-                }
-            }
+            ret.push(...player.ownedEntities);
+            ret.push(...player.visibleEnemies);
         }
         return ret;
     }
     removePlayer(player)
     {
         this.players.splice(this.players.indexOf(player), 1);
+        console.log("removed player");
     }
     checkCollision(entity)
     {
-        for(let i = 0; i < this.entityList.length; i++)
+        let nearbyEntities = this.tree.getItemsIn((x, y, wid, hgt) => {
+            return rectangleOverlapsCircle(x, y, x + wid, y + hgt, entity.x, entity.y, fogViewDistance); //fogViewDistance technically arbitrary for this purpose. //todo: fix
+        });
+        let collidedEntities = [];
+        for(let i = 0; i < nearbyEntities.length; i++)
         {
-            let targetEntity = this.entityList[i];
-            if(entity != targetEntity)
+            let targetEntity = nearbyEntities[i];
+            if(entity.id != targetEntity.id)
             {
-                let distSqr = (entity.x - targetEntity.x) ** 2 + (entity.y - targetEntity.y) ** 2;
+                let distSqr = distanceToSqr(entity, targetEntity);
                 if(distSqr < (entity.radius + targetEntity.radius) ** 2)
                 {
-                    return true;
-                }
+                    collidedEntities.push(targetEntity);
+                }  
             }
         }
-        return false;
+        return collidedEntities;
     }
 }
 module.exports = GameBoard;

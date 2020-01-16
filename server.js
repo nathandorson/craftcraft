@@ -37,14 +37,14 @@ var receivedActions = {
                 let targetId = data["targetId"];
                 let target = game.findEntityByID(targetId);
                 cl.player.harvest(id, target);
-            }
+            }/*
             else if(actionType == "build")
             {
                 let buildingType = data["building"];
                 let tx = data["x"];
                 let ty = data["y"];
                 cl.player.build(id, buildingType, tx, ty);
-            }
+            }*/
         }
     },
     join: function(cl, data) {
@@ -72,7 +72,7 @@ var receivedActions = {
             z = game.map[cellx][celly].height;
         }
         let entity = new Entity(entityType, id, x, y, z, game, cl.player);
-        if(!game.checkCollision(entity))
+        if(game.checkCollision(entity).length == 0)
         {
             cl.player.addEntity(entity);
         }
@@ -97,6 +97,10 @@ function getUnitCreationInformation(unit, player)
         isFriendly: unit.owner == player
     };
 }
+/**
+ * The class for a client allows the server to keep track of the different players connected to the game
+ * and send them updates to the state of the game so everyone knows what is going on
+ */
 class ConnectedClient
 {
     constructor(socket)
@@ -105,10 +109,11 @@ class ConnectedClient
         this.targetPlayer = -1;
         this.player = null;
         this.queuedUpdates = [];
+        /**
+         * Sends information about the creation of a new entity to the client
+         */
         this.createUnit = (unit, sendToAll, player) => {
             //send create event to client
-            // if(typeof send !== "function") send = broadcast;
-            // send(JSON.stringify(getUnitCreationInformation(unit, player)));
             if(sendToAll)
             {
                 for(let i = 0; i < clientList.length; i++)
@@ -122,27 +127,30 @@ class ConnectedClient
             else
             {
                 this.socket.send(JSON.stringify(getUnitCreationInformation(unit, this.player)));
-                
+                if(typeof unit.id === "undefined") debugger;
             }
         };
-        this.updateUnit = (unit, send, player) => { //only update if friendly unit or close to friendly unit
+        /**
+         * Sends information about the updated position and action of an entity to the client
+         */
+        this.updateUnit = (unit, sendToAll) => { //only update if friendly unit or close to friendly unit
             //send updated information to client
-            if(typeof send !== "function") send = broadcast;
-            send(JSON.stringify({
-                type: "updateEntity",
-                id: unit.id,
-                x: unit.x,
-                y: unit.y,
-                z: unit.z,
-                state: unit.state
-            }));
-        };
-        this.destroyUnit = (unit, sendToAll) => {
-            //tell client unit is no more
-            let data = JSON.stringify({
-                type: "destroyEntity",
-                id: unit.id
-            });
+            let data;
+            try
+            {
+                data = JSON.stringify({
+                    type: "updateEntity",
+                    id: unit.id,
+                    x: unit.x,
+                    y: unit.y,
+                    z: unit.z,
+                    state: unit.state
+                });
+            }
+            catch(e)
+            {
+                debugger;
+            }
             if(sendToAll)
             {
                 for(let i = 0; i < clientList.length; i++)
@@ -156,8 +164,49 @@ class ConnectedClient
                 this.socket.send(data);
             }
         };
+        /**
+         * Lets the client know that a unit has been destroyed (and specifies which unit)
+         */
+        this.destroyUnit = (unit, sendToAll) => {
+            //tell client unit is no more
+            let id;
+            if(typeof unit === "number")
+            {
+                id = unit;
+            }
+            else
+            {
+                id = unit.id;
+            }
+            let data;
+            try
+            {
+                data = JSON.stringify({
+                    type: "destroyEntity",
+                    id: id
+                });
+            }
+            catch(e)
+            {
+                debugger;
+            }
+            if(sendToAll)
+            {
+                for(let i = 0; i < clientList.length; i++)
+                {
+                    let client = clientList[i];
+                    client.socket.send(data);
+                }
+            }
+            else
+            {
+                this.socket.send(data);
+            }
+        };
+        /** 
+         * Tells the client how many resources they now have
+         */
         this.updateResources = (amt, sendToAll) => {
-            //tell client to update resource amount
             let data = JSON.stringify({
                 type: "updateResources",
                 amount: amt
@@ -175,10 +224,24 @@ class ConnectedClient
             }
         };
     }
+    /**
+     * Updates the client about all relevant entities
+     */
     update()
     {
-
+        if(this.player != null)
+        {
+            let entities = this.player.getUpdatedEntities();
+            for(let j = 0; j < entities.length; j++)
+            {
+                this.updateUnit(entities[j], false);
+            }
+        }
     }
+    /**
+     * Links a player to the client. The player object contains more game specific information,
+     * while the client object is used primarily for communication
+     */
     setPlayer(player)
     {
         this.player = player;
@@ -187,11 +250,14 @@ class ConnectedClient
             if(typeof sendToAll === "undefined") sendToAll = false;
             this.createUnit(unit, sendToAll, tplayer);
         });
-        player.emitter.on("update", this.updateUnit);
+        //player.emitter.on("update", this.updateUnit);
         player.emitter.on("destroy", this.destroyUnit);
         player.emitter.on("resource", this.updateResources);
         this.sendWorld();
     }
+    /**
+     * Sends the world to the connected client
+     */
     sendWorld()
     {
         this.socket.send(JSON.stringify({
@@ -199,20 +265,19 @@ class ConnectedClient
             worldMap: game.map
         }));
     }
+    /**
+     * Removes the client and player from the game
+     */
     destroy()
     {
-        let entityList = game.getEntityList(this.player, true);
-        for(let i = entityList.length - 1; i >= 0; i--)
+        if(this.player != null)
         {
-            let entity = entityList[i];
-            if(entity.owner == this.player)
-            {
-                entityList.splice(i, 1);
-                console.log("destroying entity id " + entity.id);
-            }
+            this.player.destroy();
         }
-        game.removePlayer(this.player);
-        console.log("removed player");
+        else
+        {
+            console.log("player was null for some reason when trying to destroy it")
+        }
         clientList.splice(clientList.indexOf(this), 1);
         console.log("removed client");
     }
