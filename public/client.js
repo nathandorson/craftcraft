@@ -1,6 +1,7 @@
 var worldSurface = null, lightSurface = null, shadowSurface = null;
 var entitySurfaces = {};
 var entityList = [];
+var friendlyEntityList = [];
 var selectedEntities = [];
 var mapSideLength = 1024, tileSideLength = 64;
 var worldMap = [];
@@ -78,7 +79,7 @@ class Camera
         this.y = 0;
         this.vx = 0;
         this.vy = 0;
-        this.scaleLevel = 1;
+        this.scaleLevel = 1.5;
         this.panSpeedMultiplier = 12;
         this.maxPanSpeed = 9;
         this.panTriggerWidth = 100;
@@ -93,8 +94,8 @@ class Camera
     {
         this.minx = -( width * this.limitPercentage );
         this.miny = -( height * this.limitPercentage );
-        this.maxx = gameWidth - (width * (1 - this.limitPercentage));
-        this.maxy = gameHeight - (height * (1 - this.limitPercentage));
+        this.maxx = gameWidth * this.scaleLevel - (width * (1 - this.limitPercentage));
+        this.maxy = gameHeight * this.scaleLevel - (height * (1 - this.limitPercentage));
     }
     pan()
     {
@@ -126,6 +127,8 @@ class Camera
         {
             this.vy = this.maxPanSpeed * sgn;
         }
+        this.vx /= this.scaleLevel;
+        this.vy /= this.scaleLevel;
         this.x += this.vx;
         this.y += this.vy;
         if(this.x < this.minx) this.x = this.minx;
@@ -146,6 +149,7 @@ class Camera
         this.x -= widthChange * (mouseX / width);
         this.y -= heightChange * (mouseY / height);
         this.scaleLevel = newScale;
+        this.updateLimits();
     }
 }
 function findEntityByID(id, remove=false)
@@ -167,7 +171,6 @@ function findEntityByID(id, remove=false)
 function updateEntitySurface(ent)
 {
     let surf = createGraphics(ent.radius * 2, ent.radius * 2);
-    surf.clear();
     let col = ent.isFriendly ? ent.friendlyColor : ent.opposingColor;
     surf.fill(col[0], col[1], col[2]);
     surf.stroke(ent.outlineColor[0], ent.outlineColor[1], ent.outlineColor[2]);
@@ -180,7 +183,6 @@ function updateWorldSurface()
     if(worldSurface == null || worldSurface.width != gameWidth || worldSurface.height != gameHeight)
     {
         worldSurface = createGraphics(gameWidth, gameHeight);
-        worldSurface.clear();
         worldSurface.noStroke();
         for(let r = 0; r < worldMap.length; r++)
         {
@@ -202,7 +204,7 @@ function updateShadowSurface()
     }
     shadowSurface.blendMode(shadowSurface.BLEND);
     shadowSurface.clear();
-    shadowSurface.background(0, 127);
+    shadowSurface.background(0,127);
     shadowSurface.blendMode(shadowSurface.REMOVE);
     //update light surface too
     let drawLightDiam = lightDiameter * cam.scaleLevel;
@@ -213,10 +215,11 @@ function updateShadowSurface()
         lightSurface.clear();
         lightSurface.ellipse(drawLightRad, drawLightRad, drawLightDiam, drawLightDiam);
     }
-    for(let i = 0; i < entityList.length; i++)
+    for(let i = 0; i < friendlyEntityList.length; i++)
     {
-        let ent = entityList[i];
-        if(ent.isFriendly)
+        let ent = friendlyEntityList[i];
+        let uipos = gameToUICoord(ent.x, ent.y);
+        if(uipos[0] > 0 && uipos[1] > 0 && uipos[0] < width && uipos[1] < height)
         {
             shadowSurface.fill(255, 255);
             shadowSurface.noStroke();
@@ -263,7 +266,12 @@ var receivedActions = {
     },
     createEntity: function(data)
     {
-        entityList.push(new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z));
+        let ent = new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z);
+        entityList.push(ent);
+        if(ent.isFriendly)
+        {
+            friendlyEntityList.push(ent);
+        }
     },
     updateEntity: function(data)
     {
@@ -278,7 +286,26 @@ var receivedActions = {
     },
     destroyEntity: function(data)
     {
-        findEntityByID(data.id, true);
+        let id = data.id;
+        for(let i = 0; i < entityList.length; i++)
+        {
+            let ent = entityList[i];
+            if(ent.id == id)
+            {
+                if(ent.isFriendly)
+                {
+                    for(j = 0; j < friendlyEntityList.length; j++)
+                    {
+                        if(friendlyEntityList[j] == ent)
+                        {
+                            friendlyEntityList.splice(j, 1);
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
     },
     updateResources: function(data)
     {
@@ -303,6 +330,7 @@ function connect(target)
         console.log("disconnected from " + target);
         connected = false;
         entityList = [];
+        friendlyEntityList = [];
         selectedEntities = [];
         worldMap = [];
     }
@@ -328,11 +356,12 @@ function windowResized()
     cam.updateLimits();
 }
 
+var theight = null;
 function drawContrastedText(textStr, x, y, padding)
 {
+    if(theight == null) theight = textAscent() + textDescent();
     if(typeof padding === "undefined") padding = 4;
     let twidth = textWidth(textStr);
-    let theight = textAscent() + textDescent();
     fill(0);
     rect(x - padding, y - padding, twidth + padding * 2, theight + padding * 2);
     fill(255);
@@ -370,7 +399,7 @@ function draw()
     if(entityPrimed)
     {
         var messageText = "Press 1 for a house, 2 for a fighter, 3 for a worker.";
-        drawContrastedText(messageText, 20, 40);
+        drawContrastedText(messageText, 20, 52);
 
         let minDist = Infinity;
         let coordinates = UIToGameCoord(mouseX,mouseY);

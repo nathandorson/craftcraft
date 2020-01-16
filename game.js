@@ -73,40 +73,51 @@ class Player
         {
             let minDistance = Infinity;
             let targetHouse = null;
-            for(let i = 0; i < entityList.length; i++)
+            for(let i = 0; i < this.ownedEntities.length; i++)
             {
-                let ent = entityList[i];
+                let ent = this.ownedEntities[i];
                 if((ent.type === "house" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
                 {
                     targetHouse = ent;
                     minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
                 }
             }
-            let totalDist = entity.distanceTo(targetHouse);
-            if(totalDist > 100)
+            if(targetHouse != null)
             {
-                entity.x = entity.x * 100 / totalDist;
-                entity.y = entity.y * 100 / totalDist;
+                let totalDist = distanceTo(targetHouse, entity);
+                if(totalDist > 100)
+                {
+                    let ux = (entity.x - targetHouse.x) / totalDist;
+                    let uy = (entity.y - targetHouse.y) / totalDist;
+                    entity.x = targetHouse.x + ux * 100;
+                    entity.y = targetHouse.y + uy * 100;
+                }
             }
         }
         if(entity.type == "house")//add houses near a worker
         {
+            //todo: make a general house finding function
             let minDistance = Infinity;
             let targetWorker = null;
-            for(let i = 0; i < entityList.length; i++)
+            for(let i = 0; i < this.ownedEntities.length; i++)
             {
-                let ent = entityList[i];
+                let ent = this.ownedEntities[i];
                 if((ent.type === "worker" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
                 {
                     targetWorker = ent;
                     minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
                 }
             }
-            let totalDist = entity.distanceTo(targetWorker);
-            if(totalDist > 100)
+            if(targetWorker != null)
             {
-                entity.x = entity.x * 100 / totalDist;
-                entity.y = entity.y * 100 / totalDist;
+                let totalDist = distanceTo(targetWorker, entity);
+                if(totalDist > 100)
+                {
+                    let ux = (entity.x - targetWorker.x) / totalDist;
+                    let uy = (entity.y - targetWorker.y) / totalDist;
+                    entity.x = targetWorker.x + ux * 100;
+                    entity.y = targetWorker.y + uy * 100;
+                }
             }
         }
         if(entity != null)//add new ent to ownedEntities and tell server about change to game state
@@ -479,6 +490,20 @@ function generatePerlinNoise(baseNoise /*2d float array*/, octaveCount /*int*/)
     }
     return perlinNoise;
 }
+function mirrorMapTerrain(terrain) //destructive
+{
+    let wid = terrain.length;
+    let hgt = terrain[0].length;
+    for(let i = 0; i < wid; i++)
+    {
+        for(let j = i; j < hgt; j++)
+        {
+            //j, i intentionally flipped
+            terrain[j][i] = terrain[i][j];
+        }
+    }
+    return terrain;
+}
 
 //iterates through arc of a circle
 //from begin angle to end angle, stoping steps times in between
@@ -520,6 +545,7 @@ class GameBoard
             { x: 160, y: this.mapSideLength - 160 }
         ];
         this.tree = new Quadtree(0, 0, this.mapSideLength, this.mapSideLength, null);
+        this.tree.maxItems = 4;
         this.generateMap();
     }
 
@@ -528,7 +554,7 @@ class GameBoard
     {
         let whiteNoise = generateWhiteNoise(this.tileSideCount, this.tileSideCount);
         let perlinNoise = generatePerlinNoise(whiteNoise, 4);
-
+        perlinNoise = mirrorMapTerrain(perlinNoise);
         this.map = [];
         for(let i = 0; i < this.tileSideCount; i++)
         {
@@ -646,22 +672,20 @@ class GameBoard
         let nearbyEntities = this.tree.getItemsIn((x, y, wid, hgt) => {
             return rectangleOverlapsCircle(x, y, x + wid, y + hgt, entity.x, entity.y, fogViewDistance); //fogViewDistance technically arbitrary for this purpose. //todo: fix
         });
+        let collidedEntities = [];
         for(let i = 0; i < nearbyEntities.length; i++)
         {
             let targetEntity = nearbyEntities[i];
             if(entity.id != targetEntity.id)
             {
-                if(!(entity.type == "worker" && targetEntity.owner == entity.owner && (targetEntity.type == "worker" || targetEntity.type == "fighter")))
-                { //workers do not collide with friendly workers or friendly fighters
-                    let distSqr = distanceToSqr(entity, targetEntity);
-                    if(distSqr < (entity.radius + targetEntity.radius) ** 2)
-                    {
-                        return true;
-                    }
-                }
+                let distSqr = distanceToSqr(entity, targetEntity);
+                if(distSqr < (entity.radius + targetEntity.radius) ** 2)
+                {
+                    collidedEntities.push(targetEntity);
+                }  
             }
         }
-        return false;
+        return collidedEntities;
     }
 }
 module.exports = GameBoard;

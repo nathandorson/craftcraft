@@ -1,6 +1,21 @@
 const EventEmitter = require("./eventemitter.js");
+/**
+ * Entity is a class used to keep track of all of the different things in the game
+ * Can be a house, worker, fighter, or cave
+ * Has many properties that keep track of important game things (like position, the entity's owner, the health, etc.)
+ */
 class Entity
 {
+    /**
+     * creates an entity
+     * @param {string} type the type of entity
+     * @param {number} id id number
+     * @param {number} x x pos
+     * @param {number} y y pos
+     * @param {number} z height
+     * @param {GameBoard} game a reference to the game world
+     * @param {Player} owner a reference to the player owner of this entity
+     */
     constructor(type, id, x, y, z, game, owner)
     {
         this.type = type;
@@ -11,28 +26,77 @@ class Entity
         this.game = game;
         this.owner = owner;
         
+        /**
+         * radius of this entity
+         */
+        this.radius = 1;
+        /**
+         * if this entity has changed positions since the last time the updates were transmitted to the client
+         */
         this.hasUpdates = false;
+        /**
+         * number of game ticks to not do anything
+         */
         this.waitSteps = 0;
+        /**
+         * pixels per tick to move
+         */
         this.moveSpeed = 1;
+        /**
+         * distance before entity stops moving toward target
+         */
         this.stopMoveRadius = 1;
+        /**
+         * distance before entity stops moving towards harvest target
+         */
         this.stopMoveHarvestRadius = 32;
+        /**
+         * distance before entity stops moving towards victim
+         */
         this.stopMoveAttackRadius = 20;
+        /**
+         * amount of damage entity does to a victim
+         */
         this.damage = 1;
+        /**
+         * number of game ticks between attacks
+         */
         this.damageCooldownMax = 60;
+        /**
+         * current number of game ticks before the next attack
+         */
         this.damageCooldown = 0;
+        /**
+         * amount of health that the entity has
+         */
         this.health = 5;
+        /**
+         * event emitter to emit events about the entity
+         */
         this.emitter = new EventEmitter();
+        /**
+         * the current state that the entity has
+         */
+        this.state = Entity.States.IDLE;
+        /**
+         * the entities target
+         */
+        this.target = null;
+        
         var _this = this;
+        //get onto the game's update loop so that we can update ourselves
         this._update = () => { _this.update(); };
         this._oupdate = this.update;
         this.game.emitter.on("update", this._update);
-        this.state = Entity.States.IDLE;
-        this.target = null;
+        //Different construction depending on what type of entity it is
         if(type=="worker")
         {
             this.health = 3;
             this.damage = 1;
             this.radius = 5;
+            /**
+             * if we are carrying something from the cave
+             */
             this.carrying = false;
             this.targetHouse = null;
         }
@@ -46,19 +110,22 @@ class Entity
         else if(type=="house")
         {
             this.health = 30;
-            this.isBigHouse = false;
-            this.isBase = false;
+            // this.isBigHouse = false;
+            // this.isBase = false;
             this.radius = 20;
             this.moveSpeed = 0;
             let mapSideLength = 1280
-            if((this.x == 300 && this.y == mapSideLength - 300) || (this.x == mapSideLength - 300 && this.y == 300)){
-                this.isBigHouse = true;
-                this.isBase = true;
-            }
+            // if((this.x == 300 && this.y == mapSideLength - 300) || (this.x == mapSideLength - 300 && this.y == 300)){
+            //     this.isBigHouse = true;
+            //     this.isBase = true;
+            // }
         }
         else if(type=="cave")
         {
             this.health = 50;
+            /**
+             * number of resources before the cave can no longer be used
+             */
             this.resourcesLeft = 1000000;
             this.changeResources = function(amt)
             {
@@ -66,29 +133,51 @@ class Entity
             };
         }
     }
+    /**
+     * Move takes the entity and moves it towards a target, which is either another entity, or a position
+     * Move also includes code to manage collisions between entities so that they do not get stuck in one another
+     */
     move()
     {
-        if(this.target == null) return false;
-        if(this.moveSpeed == 0) return true;
+        if(this.target == null) return false; //can't move to a nonexistant target
+        if(this.moveSpeed == 0) return true; //can't move if we have no speed
         let diffX = this.target.x - this.x;
         let diffY = this.target.y - this.y;
         let distSqr = diffX ** 2 + diffY ** 2;
         let dist = Math.sqrt(distSqr);
         let deltaX = (diffX / dist) * this.moveSpeed;
         let deltaY = (diffY / dist) * this.moveSpeed;
-        if(!this.detectCollisions(this.x + deltaX, this.y + deltaY)){
-            let lastPosX = this.x, lastPosY = this.y;
-            this.x += deltaX;
-            this.y += deltaY;
-            if(this.x > this.game.mapSideLength) this.x = this.game.mapSideLength;
-            if(this.y > this.game.mapSideLength) this.y = this.game.mapSideLength;
-            if(this.x < 0) this.x = 0;
-            if(this.y < 0) this.y = 0;
-            this.hasUpdates = true;
-            this.emitter.emit("update", lastPosX, lastPosY);
+        let lastPosX = this.x, lastPosY = this.y;
+        this.x += deltaX;
+        this.y += deltaY;
+        let collidedEnts = this.detectCollisions(this.x, this.y);
+        for(let i = 0; i < collidedEnts.length; i++)
+        {
+            let ent = collidedEnts[i];
+            let sqrDist = (this.x - ent.x)**2 + (this.y - ent.y)**2;
+            let minSqrDist = (this.radius + ent.radius)**2;
+            if(sqrDist < minSqrDist)
+            {
+                let actualDist = Math.sqrt(sqrDist);
+                let minDist = this.radius + ent.radius;
+                let correctionDist = actualDist - minDist;
+                let ux = (ent.x - this.x)/actualDist;
+                let uy = (ent.y - this.y)/actualDist;
+                this.x += correctionDist*ux;
+                this.y += correctionDist*uy;
+            }
         }
+        if(this.x > this.game.mapSideLength) this.x = this.game.mapSideLength;
+        if(this.y > this.game.mapSideLength) this.y = this.game.mapSideLength;
+        if(this.x < 0) this.x = 0;
+        if(this.y < 0) this.y = 0;
+        this.hasUpdates = true;
+        this.emitter.emit("update", lastPosX, lastPosY);
         return true;
     }
+    /**
+     * Called every game tick, figures out what the entity is currently doing, and then does that
+     */
     update()
     {
         if(this.waitSteps > 0)
@@ -208,6 +297,9 @@ class Entity
             }
         }
     }
+    /**
+     * Destroys this entity and removes it from all applicable locations
+     */
     destroy()
     {
         this.emitter.emit("destroy");
@@ -238,10 +330,16 @@ class Entity
             }
         }
     }
+    /**
+     * Detects collisions with all nearby entities at a given x and y location
+     */
     detectCollisions(checkX, checkY)
     {
         return this.game.checkCollision({ x: checkX, y: checkY, radius: this.radius, id: this.id });
     }
+    /**
+     * Does damage to this entity, possibly killing it
+     */
     damageThis(amount)
     {
         this.health -= amount;
@@ -252,6 +350,9 @@ class Entity
         }
     }
 }
+/**
+ * Different things that the entity can currently be doing. They are pretty self-explanatory
+ */
 Entity.States = {
     IDLE: 0,
     MOVING: 1,
