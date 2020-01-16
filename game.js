@@ -73,7 +73,7 @@ class Player
         {
             let minDistance = Infinity;
             let targetHouse = null;
-            for(let i = 0; i < this.ownedEntities.length; i++)
+            for(let i = 0; i < this.ownedEntities.length; i++)//find nearest house
             {
                 let ent = this.ownedEntities[i];
                 if((ent.type === "house" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
@@ -82,7 +82,7 @@ class Player
                     minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
                 }
             }
-            if(targetHouse != null)
+            if(targetHouse != null) //spawn unit near a house
             {
                 let totalDist = distanceTo(targetHouse, entity);
                 if(totalDist > 100)
@@ -99,7 +99,7 @@ class Player
             //todo: make a general house finding function
             let minDistance = Infinity;
             let targetWorker = null;
-            for(let i = 0; i < this.ownedEntities.length; i++)
+            for(let i = 0; i < this.ownedEntities.length; i++)//find nearest worker
             {
                 let ent = this.ownedEntities[i];
                 if((ent.type === "worker" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
@@ -108,7 +108,7 @@ class Player
                     minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
                 }
             }
-            if(targetWorker != null)
+            if(targetWorker != null)//spawn house near a worker
             {
                 let totalDist = distanceTo(targetWorker, entity);
                 if(totalDist > 100)

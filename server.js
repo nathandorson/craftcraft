@@ -1,11 +1,31 @@
 "use strict";
 var WebSocket = require("ws");
 var Entity = require("./entity.js");
+/**
+ * web socket server
+ */
 var wsServer;
+/**
+ * reference to the game
+ */
 var game;
+/**
+ * web socket server port
+ */
 var port = 5524;
+/**
+ * list of clients
+ */
 var clientList;
+/**
+ * functions to call when we receive a specific action from the client
+ */
 var receivedActions = {
+    /**
+     * the client has told us to do something with an entity
+     * @param {ConnectedClient} cl the client
+     * @param {object} data data from client
+     */
     doAction: function(cl, data) {
         if(cl.player != null)
         {
@@ -47,6 +67,11 @@ var receivedActions = {
             }*/
         }
     },
+    /**
+     * the client has requested to join the game
+     * @param {ConnectedClient} cl the client
+     * @param {*} data data from client
+     */
     join: function(cl, data) {
         cl.setPlayer(game.requestPlayer(game));
         let entityList = game.getEntityList(cl.player, false);
@@ -55,6 +80,11 @@ var receivedActions = {
             cl.player.emitter.emit("create", entityList[i], false);
         }
     },
+    /**
+     * the client wants to create a unit
+     * @param {ConnectedClient} cl the client
+     * @param {*} data data from client
+     */
     createUnit: function(cl, data) {
         let x = data.x;
         let y = data.y;
@@ -78,6 +108,10 @@ var receivedActions = {
         }
     }
 };
+/**
+ * broadcasts a string to all of the clients
+ * @param {string} strMessage data to broadcast
+ */
 function broadcast(strMessage)
 {
     for(let i = 0; i < clientList.length; i++)
@@ -85,6 +119,11 @@ function broadcast(strMessage)
         clientList[i].socket.send(strMessage);
     }
 }
+/**
+ * gets information about a unit to send to the client
+ * @param {Entity} unit the unit
+ * @param {Player} player the player
+ */
 function getUnitCreationInformation(unit, player)
 {
     return {
@@ -103,12 +142,20 @@ function getUnitCreationInformation(unit, player)
  */
 class ConnectedClient
 {
+    /**
+     * creates a new connected client
+     * @param {WebSocket} socket the client's websocket
+     */
     constructor(socket)
     {
+        /**
+         * socket for the client
+         */
         this.socket = socket;
-        this.targetPlayer = -1;
+        /**
+         * the corresponding player in the game
+         */
         this.player = null;
-        this.queuedUpdates = [];
         /**
          * Sends information about the creation of a new entity to the client
          */
@@ -283,6 +330,10 @@ class ConnectedClient
     }
 }
 module.exports = {
+    /**
+     * starts the server
+     * @param {GameBoard} g a reference to the game world
+     */
     run: function(g)
     {
         game = g;
@@ -324,6 +375,9 @@ module.exports = {
             });
         });
     },
+    /**
+     * has the server update for a tick
+     */
     update: function()
     {
         for(let i = 0; i < clientList.length; i++)
