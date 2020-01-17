@@ -696,6 +696,8 @@ function keyPressed()
     {
         if(key=='1')
         {
+            entCreationX = UIToGameCoord(mouseX);
+            entCreationY = UIToGameCoord(mouseY);
             createEntity(entCreationX,entCreationY,"house");
         }
         if(key=='2')
