@@ -36,6 +36,8 @@ class Player
         this.ownedEntities = []; //list of entities owned by player
         this.resources = 130; //property of player: how many resources player has
         this.visibleEnemies = []; //list of visible enemy objs
+        this.visibleCheckCooldownReset = 15;
+        this.visibleCheckCooldown = 0;
         this.updatedEntityList = []; //list of entities
         var _this = this;
         this._update = () => { _this.update(); };
@@ -268,18 +270,26 @@ class Player
                 this.updatedEntityList.push(ent);
             }
         }
-        //find additions and removals
-        let additions = getArrayChanges(newVisibleEnemies, this.visibleEnemies);
-        let removals = getArrayChanges(this.visibleEnemies, newVisibleEnemies);
-        this.visibleEnemies = newVisibleEnemies;
-        //tell server those changes
-        for(let i = 0; i < additions.length; i++)
+        if(this.visibleCheckCooldown <= 0)
         {
-            this.emitter.emit("create", this.game.findEntityByID(additions[i]), false, this);
+            //find additions and removals
+            let additions = getArrayChanges(newVisibleEnemies, this.visibleEnemies);
+            let removals = getArrayChanges(this.visibleEnemies, newVisibleEnemies);
+            this.visibleEnemies = newVisibleEnemies;
+            //tell server those changes
+            for(let i = 0; i < additions.length; i++)
+            {
+                this.emitter.emit("create", this.game.findEntityByID(additions[i]), false, this);
+            }
+            for(let i = 0; i < removals.length; i++)
+            {
+                this.emitter.emit("destroy", removals[i], false); //TODO: use separate commands that aren't "create" and "destroy"
+            }
+            this.visibleCheckCooldown = this.visibleCheckCooldownReset;
         }
-        for(let i = 0; i < removals.length; i++)
+        else
         {
-            this.emitter.emit("destroy", removals[i], false); //TODO: use separate commands that aren't "create" and "destroy"
+            this.visibleCheckCooldown--;
         }
     }
     update()
