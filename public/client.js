@@ -1,15 +1,75 @@
-var worldSurface = null, lightSurface = null, shadowSurface = null;
+//note: surface refers to off-screen graphics buffer
+/**
+ * a surface for the terrain background
+ */
+var worldSurface = null;
+/**
+ * surface for the lights
+ */
+var lightSurface = null;
+/**
+ * surface for the shadows
+ */
+var shadowSurface = null;
+/**
+ * map of surfaces for each entity
+ */
 var entitySurfaces = {};
+/**
+ * list of entities
+ */
 var entityList = [];
+/**
+ * list of friendly entities
+ */
 var friendlyEntityList = [];
+/**
+ * list of selected entities
+ */
 var selectedEntities = [];
-var mapSideLength = 1024, tileSideLength = 64;
+/**
+ * side length of the map
+ */
+var mapSideLength = 1024;
+/**
+ * side length of a single terrain tile
+ */
+var tileSideLength = 64;
+/**
+ * terrain height map
+ */
 var worldMap = [];
+/**
+ * diameter of a light
+ */
 var lightDiameter = 200;
+/**
+ * build radius
+ */
 var buildRadius = 100;
+/**
+ * amount of resources
+ */
 var resources = 0;
-var gameWidth = 640, gameHeight = 640;
-var controlButtonPressed = false, shiftButtonPressed = false;
+/**
+ * width the game world
+ */
+var gameWidth = 640;
+/**
+ * height of the game world
+ */
+var gameHeight = 640;
+/**
+ * whether the control button is pressed
+ */
+var controlButtonPressed = false;
+/**
+ * whether the shift button is pressed
+ */
+var shiftButtonPressed = false;
+/**
+ * list of drawing information about each entity
+ */
 var entityInfo = {
     worker: {
         radius: 5,
@@ -32,38 +92,115 @@ var entityInfo = {
         opposingColor: [255, 255, 255]
     }
 }
-var cam;
-var connected = false, ws = null;
-var selectionXi = 0, electionXf = 0, selectionYi = 0, selectionYf = 0;
-var entitySelectType = { DIRECT: 0, ADD: 1, REMOVE: 2 };
+/**
+ * camera for viewing the world
+ */
+var cam = null;
+/**
+ * if we are connected to the server
+ */
+var connected = false;
+/**
+ * the websocket connection to the server
+ */
+var ws = null;
+/**
+ * first mouse select x position
+ */
+var selectionXi = 0;
+/**
+ * first mouse select y position
+ */
+var selectionYi = 0;
+/**
+ * second mouse select x position
+ */
+var selectionXf = 0;
+/**
+ * second mouse select y position
+ */
+var selectionYf = 0;
+/**
+ * types of possible actions while selecting
+ */
+var entitySelectType = {
+    DIRECT: 0, //reselect everything in selection area
+    ADD: 1, //add selected items to existing selection
+    REMOVE: 2 //remove selected items from existing selection
+};
+/**
+ * if we are trying to place an entity
+ */
 var entityPrimed = false;
-var entCreationX = 0, entCreationY = 0;
+/**
+ * entity placement x position
+ */
+var entCreationX = 0;
+/**
+ * entity placement y position
+ */
+var entCreationY = 0;
+/**
+ * entity class
+ */
 class Entity
 {
-    constructor(type,id,isFriendly,x,y,z)
+    constructor(type, id, isFriendly, x, y, z)
     {
+        /**
+         * type of entity
+         */
         this.type = type;
+        /**
+         * id of entity
+         */
         this.id = id;
+        /**
+         * if the entity is friendly
+         */
         this.isFriendly = isFriendly;
+        /**
+         * x position of entity
+         */
         this.x = x;
+        /**
+         * y position of entity
+         */
         this.y = y;
+        /**
+         * height of entity
+         */
         this.z = z;
-        this.mainColor = [255, 255, 255];
+        /**
+         * outline color of this entity
+         */
         this.outlineColor = [0, 0, 0];
+        /**
+         * outline width of this entity
+         */
         this.outlineWidth = 1;
+        /**
+         * default radius of entity
+         */
         this.radius = 10;
+        //find and set type specific info about entity
         let info = entityInfo[this.type];
         for(let prop in info)
         {
             this[prop] = info[prop];
         }
     }
+    /**
+     * draw this entity
+     */
     draw()
     {
+        // if there is no surface for this entity, make one
         if(typeof entitySurfaces[this.type] === "undefined")
         {
             updateEntitySurface(this);
         }
+        //if there is a surface for this entity, draw it
         if(typeof entitySurfaces[this.type] !== "undefined")
         {
             image(entitySurfaces[this.type], this.x - this.radius, this.y - this.radius);
@@ -71,25 +208,64 @@ class Entity
     }
 }
 
+/**
+ * manages the camera
+ */
 class Camera
 {
+    /**
+     * creates a new camera
+     */
     constructor()
     {
+        /**
+         * top left x position of camera
+         */
         this.x = 0;
+        /**
+         * top left y position of camera
+         */
         this.y = 0;
+        /**
+         * x velocity of camera
+         */
         this.vx = 0;
+        /**
+         * y velocity of camera
+         */
         this.vy = 0;
+        /**
+         * zoom level of camera
+         */
         this.scaleLevel = 1.5;
+        /**
+         * speed multiplier of camera
+         */
         this.panSpeedMultiplier = 12;
+        /**
+         * maximum panning speed
+         */
         this.maxPanSpeed = 9;
+        /**
+         * area of zone on sides of the screen to trigger camera movement
+         */
         this.panTriggerWidth = 100;
+        /**
+         * percentage of view size we can go off screen
+         */
         this.limitPercentage = 0.1;
         this.updateLimits();
     }
+    /**
+     * set scale level for drawing
+     */
     zoom()
     {
         scale(this.scaleLevel);
     }
+    /**
+     * update the camera bounds
+     */
     updateLimits()
     {
         this.minx = -( width * this.limitPercentage );
@@ -97,6 +273,9 @@ class Camera
         this.maxx = gameWidth * this.scaleLevel - (width * (1 - this.limitPercentage));
         this.maxy = gameHeight * this.scaleLevel - (height * (1 - this.limitPercentage));
     }
+    /**
+     * check for camera panning and pan the camera if necessary
+     */
     pan()
     {
         this.vx = 0;
@@ -136,12 +315,19 @@ class Camera
         if(this.x > this.maxx) this.x = this.maxx;
         if(this.y > this.maxy) this.y = this.maxy;
     }
+    /**
+     * updates this camera for drawing
+     */
     update()
     {
         this.pan();
         this.zoom();
         translate(-this.x, -this.y);
     }
+    /**
+     * change zoom level
+     * @param {number} newScale zoom level to change to
+     */
     changeScale(newScale)
     {
         let widthChange = (width / newScale) - (width / this.scaleLevel);
@@ -204,7 +390,7 @@ function updateShadowSurface()
     }
     shadowSurface.blendMode(shadowSurface.BLEND);
     shadowSurface.clear();
-    shadowSurface.background(0,127);
+    shadowSurface.background(0, 127);
     shadowSurface.blendMode(shadowSurface.REMOVE);
     //update light surface too
     let drawLightDiam = lightDiameter * cam.scaleLevel;

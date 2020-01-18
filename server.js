@@ -48,7 +48,7 @@ var receivedActions = {
         }
     },
     join: function(cl, data) {
-        cl.setPlayer(game.requestPlayer(game));
+        cl.setPlayer(game.requestPlayer());
         let entityList = game.getEntityList(cl.player, false);
         for(let i = 0; i < entityList.length; i++)
         {

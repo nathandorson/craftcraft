@@ -1,10 +1,22 @@
+/**
+ * manages event emitting and listening
+ * can add listeners to events, and those events can be triggered
+ */
 class EventEmitter
 {
+    /**
+     * creates a new event emitter
+     */
     constructor()
     {
         this.events = {};
         this.addEventListener = this.on;
     }
+    /**
+     * adds a listener to be called when the given event is triggered
+     * @param {string} name the name of the event
+     * @param {function} action the listener to be called
+     */
     on(name, action)
     {
         if(this.events.hasOwnProperty(name))
@@ -16,16 +28,16 @@ class EventEmitter
             this.events[name] = [action];
         }
     }
-    emit(name)
+    /**
+     * triggers all listeners associated with the given event
+     * @param {*} name name of the event to trigger
+     * @param  {...any} args any arguments to be passed along to the listeners
+     */
+    emit(name, ...args)
     {
         if(!this.events.hasOwnProperty(name))
         {
             return;
-        }
-        let args = [];
-        for(let i = 1; i < arguments.length; i++)
-        {
-            args.push(arguments[i]);
         }
         let event = this.events[name];
         for(let i = 0; i < event.length; i++)
@@ -34,6 +46,11 @@ class EventEmitter
             listener(...args);
         }
     }
+    /**
+     * removes the given listener from the given event
+     * @param {string} name event to remove action from
+     * @param {function} action the action to remove
+     */
     removeListener(name, action)
     {
         if(this.events.hasOwnProperty(name))
@@ -48,12 +65,15 @@ class EventEmitter
             }
         }
     }
+    /**
+     * removes all listeners
+     */
     removeAllListeners()
     {
         this.events = {};
     }
 }
-try
+try //in case we're running this in a browser
 {
     module.exports = EventEmitter;
 }
