@@ -141,7 +141,7 @@ var entCreationX = 0;
  */
 var entCreationY = 0;
 /**
- * entity class
+ * entity class; stores info about entities and draws them
  */
 class Entity
 {
@@ -191,7 +191,7 @@ class Entity
         }
     }
     /**
-     * draw this entity
+     * The method that will draw this entity depending on what type of entity it is
      */
     draw()
     {
@@ -207,9 +207,8 @@ class Entity
         }
     }
 }
-
 /**
- * manages the camera
+ * A camera, so that the client can look around the game map
  */
 class Camera
 {
@@ -338,6 +337,8 @@ class Camera
         this.updateLimits();
     }
 }
+//Looks through the list of entities that the client knows about, and returns the entity with
+//a specified id
 function findEntityByID(id, remove=false)
 {
     for(let i = 0; i < entityList.length; i++)
@@ -354,6 +355,7 @@ function findEntityByID(id, remove=false)
     }
     return null;
 }
+//Adds an entity to the entity surface
 function updateEntitySurface(ent)
 {
     let surf = createGraphics(ent.radius * 2, ent.radius * 2);
@@ -364,6 +366,7 @@ function updateEntitySurface(ent)
     surf.ellipse(ent.radius, ent.radius, ent.radius * 2, ent.radius * 2);
     entitySurfaces[ent.type] = surf;
 }
+//Updates the world map so it can be drawn properly
 function updateWorldSurface()
 {
     if(worldSurface == null || worldSurface.width != gameWidth || worldSurface.height != gameHeight)
@@ -382,6 +385,8 @@ function updateWorldSurface()
         }
     }
 }
+//Much of the game world is obscured by shadows so that the client has incomplete information
+//This function handles the creation of shadowy areas
 function updateShadowSurface()
 {
     if(shadowSurface == null || shadowSurface.width != width || shadowSurface.height != height)
@@ -414,6 +419,7 @@ function updateShadowSurface()
         }
     }
 }
+//Draws the game world
 function drawWorld()
 {
     updateWorldSurface();
@@ -435,6 +441,7 @@ function drawWorld()
     }
 }
 var receivedActions = {
+    //if the client recieves the map they will save it and do some updates
     sendMap: function(data)
     {
         worldMap = data.worldMap;
@@ -450,6 +457,7 @@ var receivedActions = {
         }
         cam.updateLimits();
     },
+    //if the client recieves an entity creation, they will add it to the list of entities they know about
     createEntity: function(data)
     {
         let ent = new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z);
@@ -459,6 +467,7 @@ var receivedActions = {
             friendlyEntityList.push(ent);
         }
     },
+    //if the client recieves an update to an entity they will update that entity
     updateEntity: function(data)
     {
         id = data.id;
@@ -470,14 +479,17 @@ var receivedActions = {
             ent.z = data.z;
         }
     },
+    //if the client recieves info saying an entity is destroyed they will get rid of it from the list of entities they know about
     destroyEntity: function(data)
     {
         let id = data.id;
+        console.log(id);
         for(let i = 0; i < entityList.length; i++)
         {
             let ent = entityList[i];
             if(ent.id == id)
             {
+                entityList.splice(i, 1);
                 if(ent.isFriendly)
                 {
                     for(j = 0; j < friendlyEntityList.length; j++)
@@ -493,11 +505,13 @@ var receivedActions = {
             }
         }
     },
+    //if the client is told how many resources they have, they will keep track of that
     updateResources: function(data)
     {
         resources = data.amount;
     }
 }
+//attempts to connect to a specified ip address
 function connect(target)
 {
     if(ws != null)
@@ -505,6 +519,7 @@ function connect(target)
         ws.close();
     }
     ws = new WebSocket(target);
+    //when a connection is opened the client sends a JSON object to the server saying that they have connected
     ws.onopen = function() {
         console.log("connected to " + target);
         ws.send(JSON.stringify({
@@ -512,6 +527,7 @@ function connect(target)
         }));
         connected = true;
     };
+    //when a connection is closed the game basically stops
     ws.onclose = function() {
         console.log("disconnected from " + target);
         connected = false;
@@ -519,7 +535,8 @@ function connect(target)
         friendlyEntityList = [];
         selectedEntities = [];
         worldMap = [];
-    }
+    };
+    //when the client recieves a message from the server, they will do stuff with it based on what it is
     ws.onmessage = function(ev) {
         let data = JSON.parse(ev.data);
         if(typeof receivedActions[data.type] !== "undefined")
@@ -528,7 +545,7 @@ function connect(target)
         }
     }
 }
-
+//sets up the screen and the connection
 function setup()
 {
     createCanvas(windowWidth, windowHeight);
@@ -536,6 +553,7 @@ function setup()
     cam = new Camera();
     connect(startupConnectionAddress);
 }
+//resizes the window on the monitor
 function windowResized()
 {
     resizeCanvas(windowWidth, windowHeight);
@@ -543,6 +561,8 @@ function windowResized()
 }
 
 var theight = null;
+
+//draw text with black background, used to show resources and prompt unit creation
 function drawContrastedText(textStr, x, y, padding)
 {
     if(theight == null) theight = textAscent() + textDescent();
@@ -554,6 +574,7 @@ function drawContrastedText(textStr, x, y, padding)
     textAlign(LEFT, TOP);
     text(textStr, x, y);
 }
+//converts game location to screen location
 function gameToUICoord(x, y)
 {
     return [
@@ -561,6 +582,7 @@ function gameToUICoord(x, y)
         (y - cam.y) * cam.scaleLevel
     ];
 }
+//converts screen location to game location
 function UIToGameCoord(x, y)
 {
     return [
@@ -568,32 +590,33 @@ function UIToGameCoord(x, y)
         (y / cam.scaleLevel) + cam.y
     ];
 }
+//draws the game and the user interface
 function draw()
 {
-    background(255);
+    background(255); //baclground color
     push();
     cam.update();
     drawWorld();
     pop();
     image(shadowSurface, 0, 0);
     fill(0,0,255,100)
-    if(mouseIsPressed)
+    if(mouseIsPressed) //draw aslection rectangle
     {
         let selCoord = gameToUICoord(selectionXi, selectionYi);
         rect(selCoord[0], selCoord[1], mouseX - selCoord[0], mouseY - selCoord[1]);
     }
     if(entityPrimed)
     {
-        var messageText = "Press 1 for a house, 2 for a fighter, 3 for a worker.";
+        var messageText = "Press 1 for a house, 2 for a fighter, 3 for a worker."; //prompt user
         drawContrastedText(messageText, 20, 52);
 
-        let minDist = Infinity;
+        let minDist = Infinity; 
         let coordinates = UIToGameCoord(mouseX,mouseY);
         let x = coordinates[0];
         let y = coordinates[1];
-        for(let i = 0; i < entityList.length; i++)
+        for(let i = 0; i < entityList.length; i++) //find the closest valid (close to a house) spawnpoint for a new ent
         {
-            let ent = entityList[i];
+            let ent = entityList[i]; //bug: need to look at workers when placing a house
             if(ent.type == "house" && ent.isFriendly)
             {
                 let dist = Math.sqrt((x - ent.x)**2 + (y - ent.y)**2);
@@ -616,12 +639,13 @@ function draw()
         }
         let UIcoordinates = gameToUICoord(entCreationX,entCreationY);
         fill(0);
-        ellipse(UIcoordinates[0],UIcoordinates[1],10,10);
+        ellipse(UIcoordinates[0],UIcoordinates[1],10,10); //ellipse shows user where the ent will be placed
     }
     var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
     drawContrastedText(messageText, 20, 20);
 }
 
+//find all friendly ents within a selection rectangle and add them to a list
 function selectEntities(xi, yi, xf, yf, selectType)
 {
     if(typeof selectType === "undefined")
@@ -633,7 +657,7 @@ function selectEntities(xi, yi, xf, yf, selectType)
     let highX = Math.max(xi,xf);
     let lowY = Math.min(yi,yf);
     let highY = Math.max(yi,yf);
-    for(let i = 0; i < entityList.length; i++)
+    for(let i = 0; i < entityList.length; i++) //add all friendly ents within rect to a list
     {
         let ent = entityList[i];
         if(ent.x > lowX && ent.x < highX && ent.y > lowY && ent.y < highY && ent.isFriendly)
@@ -641,11 +665,11 @@ function selectEntities(xi, yi, xf, yf, selectType)
             foundEntities.push(entityList[i]);
         }
     }
-    if(selectType === entitySelectType.DIRECT)
+    if(selectType === entitySelectType.DIRECT) //replace old list of selected ents with new list
     {
         selectedEntities = foundEntities;
     }
-    else if(selectType === entitySelectType.ADD)
+    else if(selectType === entitySelectType.ADD) //add new list to old list
     {
         for(let i = 0; i < foundEntities.length; i++)
         {
@@ -670,11 +694,12 @@ function selectEntities(xi, yi, xf, yf, selectType)
     }
 }
 
+//based on target coordinates, for each selected entity, find what kind of action they will take and tell the server
 function sendMove(x,y)
 {
     let DEFAULTRADIUS = 40;
     let targetId = -1;
-    for(let i = 0; i < entityList.length; i++)
+    for(let i = 0; i < entityList.length; i++) //if the player has targeted an ent, find that ent ant set targetId accordingly
     {
         let ent = entityList[i];
         if(!ent.isFriendly)
@@ -689,15 +714,15 @@ function sendMove(x,y)
     let target = null;
     if(targetId != -1)
     {
-        target = findEntityByID(targetId);
+        target = findEntityByID(targetId); // get target ent based on id
     }
     for(let i = 0; i < selectedEntities.length; i++)
     {
         let entity = selectedEntities[i];
-        if(entity.type !== "cave" && entity.type !== "house")
+        if(entity.type !== "cave" && entity.type !== "house")//if ent can move
         {
             let data = null;
-            if(entity.type === "worker" && target != null && target.type === "cave")
+            if(entity.type === "worker" && target != null && target.type === "cave") //if a worker targets a cave, start harvesting
             {
                 data = {
                     type: "doAction",
@@ -706,7 +731,7 @@ function sendMove(x,y)
                     targetId: targetId
                 };
             }
-            else if(target != null && target.type !== "cave")
+            else if(target != null && target.type !== "cave") //in any other case if an ent is targeted start attacking
             {
                 data = {
                     type: "doAction",
@@ -715,7 +740,7 @@ function sendMove(x,y)
                     targetId: targetId
                 };
             }
-            else
+            else //if no ent is targeted, move
             {
                 data = {
                     type: "doAction",
@@ -725,7 +750,7 @@ function sendMove(x,y)
                     y: y
                 };
             }
-            if(data != null)
+            if(data != null) //send data to server
             {
                 ws.send(JSON.stringify(data));
             }
@@ -781,11 +806,14 @@ function sendMove(x,y)
     //     }
     // }
 }
+
+//prime an entity
 function prepareEntity()
 {
     entityPrimed = true;
 }
 
+//send the server a message to create a new entity
 function createEntity(x,y,entType)
 {
     ws.send(JSON.stringify({
@@ -797,6 +825,7 @@ function createEntity(x,y,entType)
     entityPrimed = false;
 }
 
+//start selecting ents by dragging a rectangle over them
 function mousePressed()
 {
     if(mouseButton == LEFT)
@@ -806,6 +835,8 @@ function mousePressed()
         selectionYi = selCoord[1];
     }
 }
+
+//finish selecting ents by dragging a rectangle over them
 function mouseReleased()
 {
     if(mouseButton == LEFT)
@@ -825,7 +856,7 @@ function mouseReleased()
         selectEntities(selectionXi, selectionYi, selectionXf, selectionYf, mode);
     }
 }
-function mouseClicked()
+function mouseClicked() //right click to do action
 {
     if(mouseButton == RIGHT)
     {
@@ -834,10 +865,12 @@ function mouseClicked()
 }
 function keyPressed()
 {
-    if(entityPrimed)
+    if(entityPrimed) //player has pressed a button to create an ent
     {
         if(key=='1')
         {
+            entCreationX = UIToGameCoord(mouseX);
+            entCreationY = UIToGameCoord(mouseY);
             createEntity(entCreationX,entCreationY,"house");
         }
         if(key=='2')
@@ -849,11 +882,11 @@ function keyPressed()
             createEntity(entCreationX,entCreationY,"worker");
         }
     }
-    if(keyCode===UP_ARROW)
+    if(keyCode===UP_ARROW) //zoom out
     {
         cam.changeScale(cam.scaleLevel * 1.1);
     }
-    else if(keyCode===DOWN_ARROW)
+    else if(keyCode===DOWN_ARROW) //zoom in
     {
         cam.changeScale(cam.scaleLevel / 1.1);
     }
@@ -869,7 +902,7 @@ function keyPressed()
     {
         //something something attack with all selected units that are valid to do so
     }
-    else if(key=='c')
+    else if(key=='c') //begin to create an entity, a prompt will appear asking which kind
     {
         if(!entityPrimed)
         {
@@ -880,7 +913,7 @@ function keyPressed()
             entityPrimed = false;
         }
     }
-    else if(key=='s')
+    else if(key=='s') //action
     {
         sendMove(mouseX/cam.scaleLevel+cam.x,mouseY/cam.scaleLevel+cam.y);
     }

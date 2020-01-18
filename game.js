@@ -107,6 +107,7 @@ class Player
      */
     addEntity(entity)
     {
+        //pay resources to add ent, if player does not have enough resources, do not add ent
         let price = 0;
         if(typeof entityPrice[entity.type] !== "undefined")
         {
@@ -116,11 +117,11 @@ class Player
         {
             return; //dont make it if the player does not have enough resources
         } //note, this will currently assume that any entity not in the price list is free
-        if(entity.type == "worker" || entity.type == "fighter")
+        if(entity.type == "worker" || entity.type == "fighter")//add units near a house
         {
             let minDistance = Infinity;
             let targetHouse = null;
-            for(let i = 0; i < this.ownedEntities.length; i++)
+            for(let i = 0; i < this.ownedEntities.length; i++)//find nearest house
             {
                 let ent = this.ownedEntities[i];
                 if((ent.type === "house" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
@@ -129,7 +130,7 @@ class Player
                     minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
                 }
             }
-            if(targetHouse != null)
+            if(targetHouse != null) //spawn unit near a house
             {
                 let totalDist = distanceTo(targetHouse, entity);
                 if(totalDist > fogViewDistance)
@@ -141,12 +142,12 @@ class Player
                 }
             }
         }
-        if(entity.type == "house")
+        if(entity.type == "house")//add houses near a worker
         {
             //todo: make a general house finding function
             let minDistance = Infinity;
             let targetWorker = null;
-            for(let i = 0; i < this.ownedEntities.length; i++)
+            for(let i = 0; i < this.ownedEntities.length; i++)//find nearest worker
             {
                 let ent = this.ownedEntities[i];
                 if((ent.type === "worker" && ent.owner === entity.owner) && (ent.x-entity.x)**2 + (ent.y-entity.y)**2 < minDistance)
@@ -155,7 +156,7 @@ class Player
                     minDistance = (ent.x-entity.x)**2 + (ent.y-entity.y)**2;
                 }
             }
-            if(targetWorker != null)
+            if(targetWorker != null)//spawn house near a worker
             {
                 let totalDist = distanceTo(targetWorker, entity);
                 if(totalDist > 100)
@@ -167,7 +168,7 @@ class Player
                 }
             }
         }
-        if(entity != null)
+        if(entity != null)//add new ent to ownedEntities and tell server about change to game state
         {
             this.ownedEntities.push(entity);
             this.changeResources(this.resources - price);
@@ -322,18 +323,26 @@ class Player
                 this.updatedEntityList.push(ent);
             }
         }
-        //find additions and removals
-        let additions = getArrayChanges(newVisibleEnemies, this.visibleEnemies);
-        let removals = getArrayChanges(this.visibleEnemies, newVisibleEnemies);
-        this.visibleEnemies = newVisibleEnemies;
-        //tell server those changes
-        for(let i = 0; i < additions.length; i++)
+        if(this.visibleCheckCooldown <= 0)
         {
-            this.emitter.emit("create", this.game.findEntityByID(additions[i]), false, this);
+            //find additions and removals
+            let additions = getArrayChanges(newVisibleEnemies, this.visibleEnemies);
+            let removals = getArrayChanges(this.visibleEnemies, newVisibleEnemies);
+            this.visibleEnemies = newVisibleEnemies;
+            //tell server those changes
+            for(let i = 0; i < additions.length; i++)
+            {
+                this.emitter.emit("create", this.game.findEntityByID(additions[i]), false, this);
+            }
+            for(let i = 0; i < removals.length; i++)
+            {
+                this.emitter.emit("destroy", removals[i], false); //TODO: use separate commands that aren't "create" and "destroy"
+            }
+            this.visibleCheckCooldown = this.visibleCheckCooldownReset;
         }
-        for(let i = 0; i < removals.length; i++)
+        else
         {
-            this.emitter.emit("destroy", removals[i], false); //TODO: use separate commands that aren't "create" and "destroy"
+            this.visibleCheckCooldown--;
         }
     }
     /**
@@ -383,11 +392,7 @@ class Player
                 houseCount++;
             }
         }
-        if(houseCount == 0)
-        {
-            return true;
-        }
-        return false;
+        return(houseCount == 0);
     }
     /**
      * gets the other player on the map
@@ -773,7 +778,7 @@ class GameBoard
         {
             let player = new Player(this);
             let loc;
-            if(this.possibleSpawnLocations.length > 0)
+            if(this.possibleSpawnLocations.length > 0) //set starting location
             {
                 let locationInd = Math.floor(Math.random() * this.possibleSpawnLocations.length);
                 loc = this.possibleSpawnLocations[locationInd];
