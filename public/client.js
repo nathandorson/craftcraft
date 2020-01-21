@@ -1,16 +1,75 @@
-var worldSurface = null, lightSurface = null, shadowSurface = null;
+//note: surface refers to off-screen graphics buffer
+/**
+ * a surface for the terrain background
+ */
+var worldSurface = null;
+/**
+ * surface for the lights
+ */
+var lightSurface = null;
+/**
+ * surface for the shadows
+ */
+var shadowSurface = null;
+/**
+ * map of surfaces for each entity
+ */
 var entitySurfaces = {};
-var entityList = []; //the list of all entities that this client knows about
-var friendlyEntityList = []; //the list of entities that this client controls
-var selectedEntities = []; //the list of entities that the client currently has selected in order to move them or give them a command
-var mapSideLength = 1024, tileSideLength = 64; //the size of the game world, and the size of each differently colored tile in the world
-var worldMap = []; //a two dimensional array of tiles that is used to represent the world
-var lightDiameter = 200; //how far entities push back the shadows, allowing sight for the client
-var buildRadius = 100; //how far away from houses the client can build
-var resources = 0; // the number of resources this client owns
-var gameWidth = 640, gameHeight = 640; //the size of the screen
-var controlButtonPressed = false, shiftButtonPressed = false;
-//useful information about each of the different entity types and how they are represented
+/**
+ * list of entities
+ */
+var entityList = [];
+/**
+ * list of friendly entities
+ */
+var friendlyEntityList = [];
+/**
+ * list of selected entities
+ */
+var selectedEntities = [];
+/**
+ * side length of the map
+ */
+var mapSideLength = 1024;
+/**
+ * side length of a single terrain tile
+ */
+var tileSideLength = 64;
+/**
+ * terrain height map
+ */
+var worldMap = [];
+/**
+ * diameter of a light
+ */
+var lightDiameter = 200;
+/**
+ * build radius
+ */
+var buildRadius = 100;
+/**
+ * amount of resources
+ */
+var resources = 0;
+/**
+ * width the game world
+ */
+var gameWidth = 640;
+/**
+ * height of the game world
+ */
+var gameHeight = 640;
+/**
+ * whether the control button is pressed
+ */
+var controlButtonPressed = false;
+/**
+ * whether the shift button is pressed
+ */
+var shiftButtonPressed = false;
+/**
+ * list of drawing information about each entity
+ */
 var entityInfo = {
     worker: {
         radius: 5,
@@ -33,29 +92,98 @@ var entityInfo = {
         opposingColor: [255, 255, 255]
     }
 }
-var cam; //the camera that is used to look around the game world
-var connected = false, ws = null; //if the client is connected, and what websocket they are connected to
-var selectionXi = 0, electionXf = 0, selectionYi = 0, selectionYf = 0;
-var entitySelectType = { DIRECT: 0, ADD: 1, REMOVE: 2 };
-var entityPrimed = false;
-var entCreationX = 0, entCreationY = 0;
 /**
- * Class used to keep track of entities that the client knows about
+ * camera for viewing the world
+ */
+var cam = null;
+/**
+ * if we are connected to the server
+ */
+var connected = false;
+/**
+ * the websocket connection to the server
+ */
+var ws = null;
+/**
+ * first mouse select x position
+ */
+var selectionXi = 0;
+/**
+ * first mouse select y position
+ */
+var selectionYi = 0;
+/**
+ * second mouse select x position
+ */
+var selectionXf = 0;
+/**
+ * second mouse select y position
+ */
+var selectionYf = 0;
+/**
+ * types of possible actions while selecting
+ */
+var entitySelectType = {
+    DIRECT: 0, //reselect everything in selection area
+    ADD: 1, //add selected items to existing selection
+    REMOVE: 2 //remove selected items from existing selection
+};
+/**
+ * if we are trying to place an entity
+ */
+var entityPrimed = false;
+/**
+ * entity placement x position
+ */
+var entCreationX = 0;
+/**
+ * entity placement y position
+ */
+var entCreationY = 0;
+/**
+ * entity class; stores info about entities and draws them
  */
 class Entity
 {
-    constructor(type,id,isFriendly,x,y,z)
+    constructor(type, id, isFriendly, x, y, z)
     {
-        this.type = type; //entity type
-        this.id = id; //entity id
-        this.isFriendly = isFriendly; //if the client owns the entity
-        this.x = x; //entity x location
-        this.y = y; //entity y location
-        this.z = z; //entity z location (not used at present)
-        this.mainColor = [255, 255, 255]; //entity's color
-        this.outlineColor = [0, 0, 0]; //entity's outline color
-        this.outlineWidth = 1; //the width of the outline of the entity
-        this.radius = 10; //the radius of this entity (they are just circles)
+        /**
+         * type of entity
+         */
+        this.type = type;
+        /**
+         * id of entity
+         */
+        this.id = id;
+        /**
+         * if the entity is friendly
+         */
+        this.isFriendly = isFriendly;
+        /**
+         * x position of entity
+         */
+        this.x = x;
+        /**
+         * y position of entity
+         */
+        this.y = y;
+        /**
+         * height of entity
+         */
+        this.z = z;
+        /**
+         * outline color of this entity
+         */
+        this.outlineColor = [0, 0, 0];
+        /**
+         * outline width of this entity
+         */
+        this.outlineWidth = 1;
+        /**
+         * default radius of entity
+         */
+        this.radius = 10;
+        //find and set type specific info about entity
         let info = entityInfo[this.type];
         for(let prop in info)
         {
@@ -67,10 +195,12 @@ class Entity
      */
     draw()
     {
+        // if there is no surface for this entity, make one
         if(typeof entitySurfaces[this.type] === "undefined")
         {
             updateEntitySurface(this);
         }
+        //if there is a surface for this entity, draw it
         if(typeof entitySurfaces[this.type] !== "undefined")
         {
             image(entitySurfaces[this.type], this.x - this.radius, this.y - this.radius);
@@ -82,25 +212,59 @@ class Entity
  */
 class Camera
 {
+    /**
+     * creates a new camera
+     */
     constructor()
     {
-        this.x = 0; //camera x location (top left)
-        this.y = 0; //camera y location (top left)
-        this.vx = 0; //camera movevent speed in the x direction
-        this.vy = 0; //camera movement speed in the y direction
-        this.scaleLevel = 1.5; //the zoom level of the camera
-        this.panSpeedMultiplier = 12; //how fast the camera ramps up speed
-        this.maxPanSpeed = 9; //the max camera movement speed
-        this.panTriggerWidth = 100; //how close to the edge the mouse must be to trigger camera movement
-        this.limitPercentage = 0.1; //the limit on where the camera moves relative to the map (so you cannot go too far off the side of the map)
+        /**
+         * top left x position of camera
+         */
+        this.x = 0;
+        /**
+         * top left y position of camera
+         */
+        this.y = 0;
+        /**
+         * x velocity of camera
+         */
+        this.vx = 0;
+        /**
+         * y velocity of camera
+         */
+        this.vy = 0;
+        /**
+         * zoom level of camera
+         */
+        this.scaleLevel = 1.5;
+        /**
+         * speed multiplier of camera
+         */
+        this.panSpeedMultiplier = 12;
+        /**
+         * maximum panning speed
+         */
+        this.maxPanSpeed = 9;
+        /**
+         * area of zone on sides of the screen to trigger camera movement
+         */
+        this.panTriggerWidth = 100;
+        /**
+         * percentage of view size we can go off screen
+         */
+        this.limitPercentage = 0.1;
         this.updateLimits();
     }
-    //Zooms the camera to the current zoom level
+    /**
+     * set scale level for drawing
+     */
     zoom()
     {
         scale(this.scaleLevel);
     }
-    //Changes the boundaries on camera for when the camera zooms
+    /**
+     * update the camera bounds
+     */
     updateLimits()
     {
         this.minx = -( width * this.limitPercentage );
@@ -108,7 +272,9 @@ class Camera
         this.maxx = gameWidth * this.scaleLevel - (width * (1 - this.limitPercentage));
         this.maxy = gameHeight * this.scaleLevel - (height * (1 - this.limitPercentage));
     }
-    //Moves the camera to its correct position. Called every draw() step so the camera is always in the correct spot
+    /**
+     * check for camera panning and pan the camera if necessary
+     */
     pan()
     {
         this.vx = 0;
@@ -148,14 +314,19 @@ class Camera
         if(this.x > this.maxx) this.x = this.maxx;
         if(this.y > this.maxy) this.y = this.maxy;
     }
-    //Does all relevant movements for the camera. Done every draw() step
+    /**
+     * updates this camera for drawing
+     */
     update()
     {
         this.pan();
         this.zoom();
         translate(-this.x, -this.y);
     }
-    //Rescales the camera
+    /**
+     * change zoom level
+     * @param {number} newScale zoom level to change to
+     */
     changeScale(newScale)
     {
         let widthChange = (width / newScale) - (width / this.scaleLevel);
@@ -224,7 +395,7 @@ function updateShadowSurface()
     }
     shadowSurface.blendMode(shadowSurface.BLEND);
     shadowSurface.clear();
-    shadowSurface.background(0,127);
+    shadowSurface.background(0, 127);
     shadowSurface.blendMode(shadowSurface.REMOVE);
     //update light surface too
     let drawLightDiam = lightDiameter * cam.scaleLevel;
@@ -312,7 +483,7 @@ var receivedActions = {
     destroyEntity: function(data)
     {
         let id = data.id;
-        console.log(id);
+        //console.log(id);
         for(let i = 0; i < entityList.length; i++)
         {
             let ent = entityList[i];
@@ -378,9 +549,11 @@ function connect(target)
 function setup()
 {
     createCanvas(windowWidth, windowHeight);
-    background(255);
+    //background(255);
     cam = new Camera();
     connect(startupConnectionAddress);
+    noLoop();
+    setInterval(() => { draw(); }, 1000 / 60);
 }
 //resizes the window on the monitor
 function windowResized()
@@ -727,10 +900,6 @@ function keyPressed()
     {
         shiftButtonPressed = true;
     }
-    if(key=='a'||key=='A')
-    {
-        //something something attack with all selected units that are valid to do so
-    }
     else if(key=='c') //begin to create an entity, a prompt will appear asking which kind
     {
         if(!entityPrimed)
@@ -742,7 +911,7 @@ function keyPressed()
             entityPrimed = false;
         }
     }
-    else if(key=='s') //action
+    else if(key=='s' || key=='a') //action
     {
         sendMove(mouseX/cam.scaleLevel+cam.x,mouseY/cam.scaleLevel+cam.y);
     }
