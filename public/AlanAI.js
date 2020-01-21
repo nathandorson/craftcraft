@@ -10,6 +10,7 @@ var buildRadius = 100; //how far away from houses the client can build
 var resources = 0; // the number of resources this client owns
 var gameWidth = 640, gameHeight = 640; //the size of the screen
 var controlButtonPressed = false, shiftButtonPressed = false;
+var ws = null;
 var fWorkers = 0;
 var fFighters = 0;
 var fHouses = 0;
@@ -18,6 +19,55 @@ var eFighters = 0;
 var eHouses = 0;
 var ticks = 0;
 var houseCoords = [];
+
+class Entity
+{
+    constructor(type, id, isFriendly, x, y, z)
+    {
+        /**
+         * type of entity
+         */
+        this.type = type;
+        /**
+         * id of entity
+         */
+        this.id = id;
+        /**
+         * if the entity is friendly
+         */
+        this.isFriendly = isFriendly;
+        /**
+         * x position of entity
+         */
+        this.x = x;
+        /**
+         * y position of entity
+         */
+        this.y = y;
+        /**
+         * height of entity
+         */
+        this.z = z;
+        /**
+         * outline color of this entity
+         */
+        this.outlineColor = [0, 0, 0];
+        /**
+         * outline width of this entity
+         */
+        this.outlineWidth = 1;
+        /**
+         * default radius of entity
+         */
+        this.radius = 10;
+        //find and set type specific info about entity
+        let info = entityInfo[this.type];
+        for(let prop in info)
+        {
+            this[prop] = info[prop];
+        }
+    }
+}
 
 function changeEntNums(ent, changeType){
     var t = ent.unitType
@@ -175,7 +225,7 @@ var receivedActions = {
             gameWidth = worldMap.length * tileSideLength;
             gameHeight = worldMap[0].length * tileSideLength;
         }
-        cam.updateLimits();
+        
     },
     //if the client recieves an entity creation, they will add it to the list of entities they know about
     createEntity: function(data)
@@ -257,7 +307,7 @@ function findHouse(){
     var cavesFound = 0;
     for(var i = 0; i < entityList.length; i++){
         if(entityList[i].unitType == "cave"){
-            return entityList[i].id
+            return entityList[i].id;
         }
     }
     return -1;
@@ -267,7 +317,7 @@ function makeMoves(){
     if(fWorkers < 5 && resources >= 10){
         createEntity(houseCoords[0] + 50, houseCoords[1] + 50, "worker");
     }
-    if(fworkers % 5 == 1 && resources >= 15){
+    if(fWorkers % 5 == 1 && resources >= 15){
         createEntity(houseCoords[0] + 50, houseCoords[1] + 50, "fighter");
     }
     if(fWorkers % 5 != 1 && resources >= 10){
@@ -277,7 +327,7 @@ function makeMoves(){
         ent = entityList[i];
         if(ent.isFriendly){
             if(ent.unitType == "worker" && ent.target == null){
-                sendMove(-1, -1, findCave(), ent)
+                sendMove(-1, -1, findCave(), ent);
             }
             if((ent.unitType == "fighter" && ent.target == null) && fFighters >= 15){
                 houseId = findHouse();
@@ -292,8 +342,11 @@ function makeMoves(){
     }
 }
 
-
-gameUpdateInterval = setInterval(() => {
-    makeMoves();
-    ticks++;
-}, 1000 / 60);
+function setup()
+{
+    connect(startupConnectionAddress);
+    setInterval(() => { 
+        makeMoves();
+        ticks++
+    }, 1000 / 60);
+}
