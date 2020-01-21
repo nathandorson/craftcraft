@@ -727,10 +727,6 @@ function keyPressed()
     {
         shiftButtonPressed = true;
     }
-    if(key=='a'||key=='A')
-    {
-        //something something attack with all selected units that are valid to do so
-    }
     else if(key=='c') //begin to create an entity, a prompt will appear asking which kind
     {
         if(!entityPrimed)
@@ -742,7 +738,7 @@ function keyPressed()
             entityPrimed = false;
         }
     }
-    else if(key=='s') //action
+    else if(key=='s' || key=='a') //action
     {
         sendMove(mouseX/cam.scaleLevel+cam.x,mouseY/cam.scaleLevel+cam.y);
     }
