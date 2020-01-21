@@ -93,6 +93,7 @@ var receivedActions = {
         let cellx = Math.floor(x / game.tileSideLength);
         let celly = Math.floor(y / game.tileSideLength);
         let z;
+        console.log(cellx);
         if(cellx >= game.map.length || cellx < 0 || celly >= game.map[cellx].length || celly < 0)
         {
             return; // just dont make it outside of the map

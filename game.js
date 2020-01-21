@@ -34,7 +34,7 @@ class Player
         this.game = game; //which game the player is a part of
         this.emitter = new EventEmitter();
         this.ownedEntities = []; //list of entities owned by player
-        this.resources = 130; //property of player: how many resources player has
+        this.resources = 330; //property of player: how many resources player has
         this.visibleEnemies = []; //list of visible enemy objs
         this.visibleCheckCooldownReset = 15;
         this.visibleCheckCooldown = 0;
