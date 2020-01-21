@@ -483,7 +483,7 @@ var receivedActions = {
     destroyEntity: function(data)
     {
         let id = data.id;
-        console.log(id);
+        //console.log(id);
         for(let i = 0; i < entityList.length; i++)
         {
             let ent = entityList[i];
@@ -549,9 +549,11 @@ function connect(target)
 function setup()
 {
     createCanvas(windowWidth, windowHeight);
-    background(255);
+    //background(255);
     cam = new Camera();
     connect(startupConnectionAddress);
+    noLoop();
+    setInterval(() => { draw(); }, 1000 / 60);
 }
 //resizes the window on the monitor
 function windowResized()

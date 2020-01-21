@@ -79,6 +79,14 @@ class Player
          * list of entities to send updates to the client for
          */
         this.updatedEntityList = [];
+        /**
+         * cooldown for checking visible checks
+         */
+        this.visibleCheckCooldown = 0;
+        /**
+         * reset value (inverse rate) of visibility checks
+         */
+        this.visibleCheckCooldownReset = 10;
         //listen to update events so that we join the update loop
         var _this = this;
         this._update = () => { _this.update(); };
@@ -323,7 +331,7 @@ class Player
                 this.updatedEntityList.push(ent);
             }
         }
-        if(this.visibleCheckCooldown <= 0)
+        if(this.visibleCheckCooldown >= 0)
         {
             //find additions and removals
             let additions = getArrayChanges(newVisibleEnemies, this.visibleEnemies);
@@ -342,6 +350,7 @@ class Player
         }
         else
         {
+            console.log(this.visibleCheckCooldown);
             this.visibleCheckCooldown--;
         }
     }
@@ -352,7 +361,7 @@ class Player
     {
         this.updateVisibleEnemies();
     }
-    /**
+    /**this.visibleCheckCooldownReset
      * gets the list of updated entities
      * @returns {Entity[]} list of updated entities
      */
