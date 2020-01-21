@@ -310,7 +310,7 @@ var receivedActions = {
                         caves.push(c);
                     }
                 }
-                let cave = caves[Math.floor(caves.length*Math.random())];
+                let cave = caves[Math.floor(caves.length*Math.random())]; //todo CAVES DONT EXIST YET
                 let data = {
                     type: "doAction",
                     actionType: "harvest",
