@@ -9,11 +9,18 @@ catch(e)
     console.log("express not installed; recommended for web server");
 }
 
-var gameUpdateInterval;
 var GameBoard = require("./game.js");
+/**
+ * main loop
+ */
+var gameUpdateInterval;
 
+/**
+ * beginning of program
+ */
 function main()
 {
+    //try to run webserver
     if(express != null)
     {
         try
@@ -29,12 +36,14 @@ function main()
             console.log("error starting web server: " + e);
         }
     }
-
+    //create game world
     gameWorld = new GameBoard();
+    //start server
     server.run(gameWorld);
+    //start game loop
     gameUpdateInterval = setInterval(() => {
         gameWorld.update();
         server.update();
-    }, 1000 / 60);
+    }, 1000 / 60); //60 tps
 }
 main();

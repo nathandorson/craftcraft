@@ -1,8 +1,22 @@
 //based on quadtree made for regenerativep/jsario
+/**
+ * a quadtree for collision optimization
+ */
 class Quadtree
 {
+    /**
+     * creates a new quadtree
+     * @param {number} x top left x pos
+     * @param {number} y top left y pos
+     * @param {*} width width of this node
+     * @param {*} height height of this node
+     * @param {*} parent parent of this node
+     */
     constructor(x, y, width, height, parent)
     {
+        /**
+         * parent of this node
+         */
         this.parent = parent;
         if(parent == null)
         {
@@ -12,18 +26,54 @@ class Quadtree
         {
             this.depth = parent.depth + 1;
         }
+        /**
+         * list of children of this node; null if leaf node
+         */
         this.children = null;
+        /**
+         * list of items in this node; null if not leaf node
+         */
         this.items = null;
+        /**
+         * top left x position
+         */
         this.x = x;
+        /**
+         * top left y position
+         */
         this.y = y;
+        /**
+         * width of this node
+         */
         this.width = width;
+        /**
+         * height of this node
+         */
         this.height = height;
+        /**
+         * center x position of this node
+         */
         this.widd2 = x + width / 2;
+        /**
+         * center y position of this node
+         */
         this.hgtd2 = y + height / 2;
+        /**
+         * max depth for this node and subsequently created nodes
+         */
         this.maxDepth = 32;
+        /**
+         * max items for this node and subsequently created nodes
+         */
         this.maxItems = 1;
         this.triggered = false;
     }
+    /**
+     * adds an item to the tree
+     * @param {object} item the item to add
+     * @param {number} item.x the x position of the item
+     * @param {number} item.y the y position of the item
+     */
     addItem(item)
     {
         if(this.items != null)
@@ -49,6 +99,11 @@ class Quadtree
             }
         }
     }
+    /**
+     * gets a list of the items with the given condition
+     * @param {function} cond condition for a node to be considered (node's x, y, width, and height are passed down)
+     * @returns {object[]} list of items
+     */
     getItemsIn(cond)
     {
         this.triggered = false;
@@ -79,6 +134,9 @@ class Quadtree
         }
         return [];
     }
+    /**
+     * attempts to collapse this node
+     */
     attemptCollapse()
     {
         let heldItems = 0;
@@ -108,6 +166,12 @@ class Quadtree
             }
         }
     }
+    /**
+     * removes an item from the quadtree
+     * @param {object} item the item to remove
+     * @param {number} item.x the x position of the item
+     * @param {number} item.y the y position of the item
+     */
     removeItem(item)
     {
         if(this.items == null || this.items.length == 0)
@@ -143,6 +207,14 @@ class Quadtree
             }
         }
     }
+    /**
+     * moves an item that is already in the tree
+     * @param {object} item the item to move
+     * @param {number} item.x the x position of the item
+     * @param {number} item.y the y position of the item
+     * @param {*} prevX the previous x position of the item before it was moved
+     * @param {*} prevY the previous y position of the item before it was moved
+     */
     moveItem(item, prevX, prevY)
     {
         if(this.items == null || this.items.length == 0)
@@ -177,6 +249,9 @@ class Quadtree
             this.addItem(item);
         }
     }
+    /**
+     * splits this node into 4 more children and passes the items down to them
+     */
     split()
     {
         if(this.depth >= this.maxDepth)
@@ -197,6 +272,10 @@ class Quadtree
             this.addItem(items[i]);
         }
     }
+    /**
+     * calls a function for each item in the entire tree
+     * @param {function} fn the function to call; we pass the item
+     */
     forEach(fn)
     {
         if(this.children != null)
@@ -222,6 +301,7 @@ class Quadtree
         }
     }
 }
+
 try
 {
     module.exports = Quadtree;

@@ -4,47 +4,99 @@ var Quadtree = require("./quadtree.js");
 
 //if speed is cared about, comparison between squared
 //distances is faster than comparison between real distances
-//also the '^' operator doesn't do what you think it does,
-//which is why the '**' operator exists
+/**
+ * gets the squared distance between two points
+ * this is faster than finding the actual distance
+ * @param {object} a a location
+ * @param {number} a.x x pos
+ * @param {number} a.y y pos
+ * @param {object} b another location
+ * @param {number} b.x x pos
+ * @param {number} b.y y pos
+ */
 function distanceToSqr(a, b)
 {
     return (a.x - b.x)**2 + (a.y - b.y)**2;
 }
-//find distance between two entities a and b
-//a and b are entity objs
-//return distance
+/**
+ * gets the distance between two points
+ * @param {object} a a location
+ * @param {number} a.x x pos
+ * @param {number} a.y y pos
+ * @param {object} b another location
+ * @param {number} b.x x pos
+ * @param {number} b.y y pos
+ */
 function distanceTo(a, b)
 {
     return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
 }
+/**
+ * a list of prices for each buildable entity
+ */
 var entityPrice = {
     worker: 10,
     fighter: 15,
     house: 100
 };
-//how far each entity can see through fog of war; outside this radius enemy objs don't appear
+/**
+ * the players' view distance
+ */
 var fogViewDistance = 100;
-
-//object assigned to each player once they join
-//contains properties of the player and functions for actions the player can take
+/**
+ * manages a player in the game, and communication from the server to the game
+ */
 class Player
 {
+    /**
+     * creates a new player
+     * @param {GameBoard} game a reference to the game
+     */
     constructor(game)
     {
-        this.game = game; //which game the player is a part of
+        /**
+         * a reference to the game
+         */
+        this.game = game;
+        /**
+         * the event emitter for this player
+         */
         this.emitter = new EventEmitter();
-        this.ownedEntities = []; //list of entities owned by player
-        this.resources = 130; //property of player: how many resources player has
-        this.visibleEnemies = []; //list of visible enemy objs
-        this.visibleCheckCooldownReset = 15;
+        /**
+         * a list of entities that this player owns
+         */
+        this.ownedEntities = [];
+        /**
+         * number of resources this player has
+         * 100 for initial house placement, plus 30 for other units
+         */
+        this.resources = 130;
+        /**
+         * list of enemies visible by the player's units
+         */
+        this.visibleEnemies = [];
+        /**
+         * list of entities to send updates to the client for
+         */
+        this.updatedEntityList = [];
+        /**
+         * cooldown for checking visible checks
+         */
         this.visibleCheckCooldown = 0;
-        this.updatedEntityList = []; //list of entities
+        /**
+         * reset value (inverse rate) of visibility checks
+         */
+        this.visibleCheckCooldownReset = 10;
+        //listen to update events so that we join the update loop
         var _this = this;
         this._update = () => { _this.update(); };
         this.game.emitter.on("update", this._update);
     }
-    //search list of owned ents for the one with a particular id
-    //return an ent obj or null if not found
+    /**
+     * finds an entity by id given they are owned by this player
+     * @param {number} id the id of the entity
+     * @returns {Entity} returns the entity, null if not found
+     */
     findOwnEntityById(id)
     {
         for(let i = 0; i < this.ownedEntities.length; i++)
@@ -57,8 +109,10 @@ class Player
         }
         return null;
     }
-    //create an entity, paid for with resources, near a house/worker
-    //input an ent obj to be added
+    /**
+     * adds an entity to the game from the player
+     * @param {Entity} entity the entity to add
+     */
     addEntity(entity)
     {
         //pay resources to add ent, if player does not have enough resources, do not add ent
@@ -87,12 +141,12 @@ class Player
             if(targetHouse != null) //spawn unit near a house
             {
                 let totalDist = distanceTo(targetHouse, entity);
-                if(totalDist > 100)
+                if(totalDist > fogViewDistance)
                 {
                     let ux = (entity.x - targetHouse.x) / totalDist;
                     let uy = (entity.y - targetHouse.y) / totalDist;
-                    entity.x = targetHouse.x + ux * 100;
-                    entity.y = targetHouse.y + uy * 100;
+                    entity.x = targetHouse.x + ux * fogViewDistance;
+                    entity.y = targetHouse.y + uy * fogViewDistance;
                 }
             }
         }
@@ -145,13 +199,21 @@ class Player
             debugger;
         }
     }
-    //change resources to a new number and tell server that resources has changed
+    /**
+     * changes the amount of resources and emits a resource update
+     * @param {number} newResources amount of resources to change to
+     */
     changeResources(newResources)
     {
         this.resources = newResources;
         this.emitter.emit("resource", this.resources, false);
     }
-    //set ent with specified id to MOVING state with target location (x, y)
+    /**
+     * sets an entity's state and target to move to a location
+     * @param {number} id the id of the entity to move
+     * @param {number} x x pos of target location
+     * @param {number} y y pos of target location
+     */
     move(id, x, y)
     {
         let target;
@@ -170,7 +232,11 @@ class Player
             entity.target = target;
         }
     }
-    //set ent with specified id to HARVESTING state with a specified target ent
+    /**
+     * set an entity's state and target to harvest a cave
+     * @param {number} id the unit to affect
+     * @param {number} targetId the target cave to harvest
+     */
     harvest(id, targetId)
     {
         let target;
@@ -189,7 +255,11 @@ class Player
             entity.target = target;
         }
     }
-    //set ent with specified id to ATTACKING state with a specified target ent
+    /**
+     * set an entity's state to attack the given target
+     * @param {number} id the attacking unit's id
+     * @param {number} targetId the victim's id
+     */
     attack(id, targetId)
     {
         let target;
@@ -207,19 +277,10 @@ class Player
             entity.state = Entity.States.ATTACKING;
             entity.target = target;
         }
-    }/*
-    build(id, buildingType, x, y)
-    {
-        let entity = this.findOwnEntityById(id);
-        if(entity != null)
-        {
-            let building;
-            entity.state = Entity.States.BUILDING;
-            entity.target = building;
-        }
-    }*/
-
-    //check if any enemy ents have entered or left fog of war and update accordingly
+    }
+    /**
+     * updates the list of visible enemies, and sends and emits any changes for them
+     */
     updateVisibleEnemies()
     {
         let newVisibleEnemies = [];
@@ -270,7 +331,7 @@ class Player
                 this.updatedEntityList.push(ent);
             }
         }
-        if(this.visibleCheckCooldown <= 0)
+        if(this.visibleCheckCooldown >= 0)
         {
             //find additions and removals
             let additions = getArrayChanges(newVisibleEnemies, this.visibleEnemies);
@@ -289,21 +350,30 @@ class Player
         }
         else
         {
+            console.log(this.visibleCheckCooldown);
             this.visibleCheckCooldown--;
         }
     }
+    /**
+     * function for update loop
+     */
     update()
     {
         this.updateVisibleEnemies();
     }
-    //clear updatedEntityList and return cleared ents
+    /**this.visibleCheckCooldownReset
+     * gets the list of updated entities
+     * @returns {Entity[]} list of updated entities
+     */
     getUpdatedEntities()
     {
         let entList = this.updatedEntityList;
         this.updatedEntityList = [];
         return entList;
     }
-    //leave the gave and destroy all friendly ents
+    /**
+     * destroys entities owned by this player and removes it from the game
+     */
     destroy()
     {
         for(let i = 0; i < this.ownedEntities.length; i++)
@@ -314,9 +384,10 @@ class Player
         }
         this.game.removePlayer(this);
     }
-
-    //check of player has won
-    //return true if enemy player has no houses
+    /**
+     * checks if this entity has won the game
+     * @returns {boolean} if this player has won
+     */
     checkWin()
     {
         //currently set to win if you destroy all of the other player's houses
@@ -332,7 +403,10 @@ class Player
         }
         return(houseCount == 0);
     }
-    //return enemy player obj
+    /**
+     * gets the other player on the map
+     * @returns {Player} the opposing player
+     */
     getOpposingPlayer()
     {
         return this.game.players[this.game.players.length - this.game.players.indexOf(this) - 1];
@@ -346,6 +420,13 @@ class Player
  * It will output a = [2,7,8,9]
  * 
  */ //modified for ids
+ /**
+  * adds a value to a sorted array
+  * @param {number} value value to add to array
+  * @param {number[]} array array to add to
+  * @param {number=} startVal the beginning value for searching
+  * @param {number=} endVal the end value for searching
+  */
 function binaryInsert(value, array, startVal, endVal){
 
 	var length = array.length;
@@ -385,7 +466,13 @@ function binaryInsert(value, array, startVal, endVal){
 
 	//we don't insert duplicates
 }
-//return true if item is in arr, otherwise false
+//todo: the two following functions are slow. maybe find another solution in the code where they are called
+/**
+ * checks if an item is in an array
+ * @param {any[]} arr array to look inside of
+ * @param {any} item item to look for
+ * @returns {boolean} if the item is in the array
+ */
 function itemInArray(arr, item)
 {
     for(let i = 0; i < arr.length; i++)
@@ -397,8 +484,12 @@ function itemInArray(arr, item)
     }
     return false;
 }
-
-//return an array of entries in a that don't exist in b
+/**
+ * gets a list of positive changes from source to destination array
+ * @param {any[]} a source array
+ * @param {any[]} b destination array
+ * @returns {any[]} list of changes
+ */
 function getArrayChanges(a, b)
 {
     let changes = [];
@@ -413,6 +504,12 @@ function getArrayChanges(a, b)
 }
 
 //http://devmag.org.za/2009/04/25/perlin-noise/
+/**
+ * generates a 2d array of white noise
+ * @param {number} wid the width of the noise array
+ * @param {number} hgt the height of the noise array
+ * @returns {number[][]} 2d array of white noise
+ */
 function generateWhiteNoise(wid, hgt)
 {
     let noise = [];
@@ -427,10 +524,23 @@ function generateWhiteNoise(wid, hgt)
     }
     return noise;
 }
+/**
+ * interpolates between two values with an alph
+ * @param {number} x0 start value
+ * @param {number} x1 end value
+ * @param {number} alph amount of end value versus start value
+ * @returns {number} the interpolated value
+ */
 function interpolateValues(x0, x1, alph) //float, float, float, returns float
 {
     return x0 * (1 - alph) + alph * x1;
 }
+/**
+ * smooths the given noise
+ * @param {number[][]} baseNoise 2d array of noise
+ * @param {number} octave the octave
+ * @returns {number[][]} the 2d array of smoothened noise
+ */
 function generateSmoothNoise(baseNoise /*2d float array*/, octave /*int*/)
 {
     let wid = baseNoise.length;
@@ -457,6 +567,12 @@ function generateSmoothNoise(baseNoise /*2d float array*/, octave /*int*/)
     }
     return smoothNoise;
 }
+/**
+ * generates perlin noise from base noise
+ * @param {number[][]} baseNoise 2d noise array
+ * @param {number} octaveCount number of octaves
+ * @returns {number[][]} 2d array of perlin noise
+ */
 function generatePerlinNoise(baseNoise /*2d float array*/, octaveCount /*int*/)
 {
     let wid = baseNoise.length;
@@ -500,24 +616,35 @@ function generatePerlinNoise(baseNoise /*2d float array*/, octaveCount /*int*/)
     }
     return perlinNoise;
 }
-function mirrorMapTerrain(terrain) //destructive
+/**
+ * mirrors a 2d array of values
+ * @param {any[][]} arr the 2d array mirrored along the diagonal
+ * @returns {any[][]} the mirrored (same reference as input) array
+ */
+function mirrorMapTerrain(arr) //destructive, but it isn't like we care about the missing half of the resulting map
 {
-    let wid = terrain.length;
-    let hgt = terrain[0].length;
+    let wid = arr.length;
+    let hgt = arr[0].length;
     for(let i = 0; i < wid; i++)
     {
         for(let j = i; j < hgt; j++)
         {
             //j, i intentionally flipped
-            terrain[j][i] = terrain[i][j];
+            arr[j][i] = arr[i][j];
         }
     }
-    return terrain;
+    return arr;
 }
-
-//iterates through arc of a circle
-//from begin angle to end angle, stoping steps times in between
-//used to generate caves
+/**
+ * runs a loop, stepping through an arc around a circle specified by the beginning and ending angles
+ * @param {number} x the circle center x position
+ * @param {number} y the circle center y position
+ * @param {number} radius the radius of circle
+ * @param {number} begin beginning angle of arc
+ * @param {number} end ending angle of arc
+ * @param {number} steps steps to divide arc into
+ * @param {function} action function call for each step on the arc
+ */
 function forCircle(x, y, radius, begin, end, steps, action)
 {
     if(begin == end) return;
@@ -529,37 +656,83 @@ function forCircle(x, y, radius, begin, end, steps, action)
     }
 }
 //https://yal.cc/rectangle-circle-intersection-test/
+/**
+ * checks if a rectangle overlaps a circle
+ * @param {number} rx1 rectangle leftmost x
+ * @param {number} ry1 rectangle topmost y
+ * @param {number} rx2 rectangle rightmost x
+ * @param {number} ry2 rectangle bottommost y
+ * @param {number} cx circle center x
+ * @param {number} cy circle center y
+ * @param {number} cr circle radius
+ * @returns {boolean} if the rectangle overlaps the circle
+ */
 function rectangleOverlapsCircle(rx1, ry1, rx2, ry2, cx, cy, cr)
 {
     let dx = cx - Math.max(rx1, Math.min(cx, rx2));
     let dy = cy - Math.max(ry1, Math.min(cy, ry2));
     return (dx ** 2 + dy ** 2) < (cr ** 2);
 }
-
-//game board object 
-//contains player ents and functions to update the playing field
+/**
+ * manages the game world
+ */
 class GameBoard
 {
+    /**
+     * creates the game board
+     */
     constructor()
     {
+        /**
+         * event emitter for the game
+         */
         this.emitter = new EventEmitter();
+        /**
+         * map to easily find entities given their id
+         */
         this.idMap = {};
+        /**
+         * list of players
+         */
         this.players = [];
+        /**
+         * max players in the game at one time
+         */
         this.maxPlayers = 2;
+        /**
+         * highest entity id (for id requesting, making sure that we dont use ids already in use)
+         */
         this.highestId = 0;
+        /**
+         * length of the side of a single terrain tile
+         */
         this.tileSideLength = 64;
+        /**
+         * number of tiles on a side of the terrain
+         */
         this.tileSideCount = 20;
+        /**
+         * length of the terrain sides
+         */
         this.mapSideLength = this.tileSideCount * this.tileSideLength;
+        /**
+         * list of possible spawn locations for players when they join
+         */
         this.possibleSpawnLocations = [
             { x: this.mapSideLength - 160, y: 160 },
             { x: 160, y: this.mapSideLength - 160 }
         ];
+        /**
+         * quadtree for collision optimization
+         */
         this.tree = new Quadtree(0, 0, this.mapSideLength, this.mapSideLength, null);
         this.tree.maxItems = 4;
+        //generate the map
         this.generateMap();
     }
-
-    //creates game map with tiles and caves
+    /**
+     * generates the terrain and initial entities on map
+     */
     generateMap()
     {
         let whiteNoise = generateWhiteNoise(this.tileSideCount, this.tileSideCount);
@@ -588,24 +761,31 @@ class GameBoard
         forCircle(160, this.mapSideLength - 160, 128, Math.PI / 2, Math.PI * 2, 8, createCave);
         forCircle(this.mapSideLength - 160, 160, 128, -Math.PI / 2, Math.PI , 8, createCave);
     }
-    //update all entities
+    /**
+     * called every tick
+     */
     update()
     {
         this.tree.forEach((entity) => { entity.update(); })
         this.emitter.emit("update");
     }
-    //returns a unique id for a new ent
+    /**
+     * requests an id for an entity
+     * @returns {number} a new id
+     */
     requestId()
     {
         return this.highestId++;
     }
-
-    //add new player onj to game
-    requestPlayer(game)
+    /**
+     * requests a player for a newly connected client
+     * @returns {Player} the generated player; null if cannot create
+     */
+    requestPlayer()
     {
         if(this.players.length < this.maxPlayers)
         {
-            let player = new Player(game);
+            let player = new Player(this);
             let loc;
             if(this.possibleSpawnLocations.length > 0) //set starting location
             {
@@ -623,15 +803,19 @@ class GameBoard
         }
         return null;
     }
-
-    //add new ent to tree
+    /**
+     * adds an entity to the game world
+     * @param {Entity} ent the entity to add
+     */
     addEntity(ent)
     {
         this.tree.addItem(ent);
         this.idMap[ent.id] = ent;
     }
-
-    //delete ent obj
+    /**
+     * removes an entity from the game world
+     * @param {(Entity|number)} ent an entity or id
+     */
     removeEntity(ent)
     {
         if(typeof ent === "number")
@@ -644,8 +828,11 @@ class GameBoard
             delete this.idMap[ent.id];
         }
     }
-
-    //return ent obj with specified id
+    /**
+     * finds an entity given their id
+     * @param {number} id the id of the entity to look for
+     * @returns {Entity} the found entity; null if failed to find
+     */
     findEntityByID(id)
     {
         if(typeof this.idMap[id] !== "undefined")
@@ -654,8 +841,12 @@ class GameBoard
         }
         return null;
     }
-
-    //return list of all ents
+    /**
+     * gets an entity list, with fog of war affects if desired
+     * @param {Player} player the player to find entities for
+     * @param {boolean} getAll if we get all of the entities
+     * @returns {Entity[]} list of entities
+     */
     getEntityList(player, getAll)
     {
         let ret = [];
@@ -670,13 +861,20 @@ class GameBoard
         }
         return ret;
     }
-    //remove a player from the game
+    /**
+     * removes a player from the game
+     * @param {Player} player the player to remove
+     */
     removePlayer(player)
     {
         this.players.splice(this.players.indexOf(player), 1);
         console.log("removed player");
     }
-    //check if an entity is within collision range of nearby entities
+    /**
+     * get a list of collisions against the given entity
+     * @param {Entity} entity the entity to check for collisions from
+     * @returns {Entity[]} list of entities the given entity collides with
+     */
     checkCollision(entity)
     {
         let nearbyEntities = this.tree.getItemsIn((x, y, wid, hgt) => {
