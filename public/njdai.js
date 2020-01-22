@@ -56,6 +56,7 @@ class Entity
         this.x = x; //entity x location
         this.y = y; //entity y location
         this.z = z; //entity z location (not used at present)
+        this.harvesting = false;
         this.mainColor = [255, 255, 255]; //entity's color
         this.outlineColor = [0, 0, 0]; //entity's outline color
         this.outlineWidth = 1; //the width of the outline of the entity
@@ -64,6 +65,10 @@ class Entity
         for(let prop in info)
         {
             this[prop] = info[prop];
+        }
+        if(this.type=="cave")
+        {
+            this.numWorkers = 0;
         }
     }
     /**
@@ -305,19 +310,26 @@ var receivedActions = {
                 for(let i = 0; i < entityList.length; i++)
                 {
                     let c = entityList[i];
-                    if(c.type=="cave")
+                    if(c.type=="cave" && c.numWorkers < 4)
                     {
                         caves.push(c);
                     }
                 }
-                let cave = caves[Math.floor(caves.length*Math.random())]; //todo CAVES DONT EXIST YET
-                let data = {
-                    type: "doAction",
-                    actionType: "harvest",
-                    id: ent.id,
-                    targetId: cave.id
-                };
-                queue.push(JSON.stringify(data));
+                console.log("worker made")
+                if(caves.length > 0)
+                {
+                    console.log("caves found")
+                    let cave = caves[Math.floor(caves.length*Math.random())]; //todo CAVES DONT EXIST YET
+                    let data = {
+                        type: "doAction",
+                        actionType: "harvest",
+                        id: ent.id,
+                        targetId: cave.id
+                    };
+                    cave.numWorkers++;
+                    findEntityByID(ent.id).harvesting = true;
+                    ws.send(JSON.stringify(data));
+                }
             }
             if(ent.type=="fighter")
             {
@@ -329,10 +341,12 @@ var receivedActions = {
                     x: baseY,
                     y: baseX
                 };
-                queue.push(JSON.stringify(data));
+                ws.send(JSON.stringify(data));
             }
             if(ent.type=="house")
             {
+                baseX = ent.x;
+                baseY = ent.y;
                 ws.send(JSON.stringify({
                     type: "createUnit",
                     entityType: "worker",
@@ -353,6 +367,39 @@ var receivedActions = {
                 }))
             }
         }
+        if(ent.type == "cave")
+        {
+            let caves = [];
+            for(let i = 0; i < entityList.length; i++)
+            {
+                let c = entityList[i];
+                if(c.type=="cave" && c.numWorkers < 4)
+                {
+                    caves.push(c);
+                }
+            }
+            for(let i = 0; i < friendlyEntityList.length; i++)
+            {
+                let w = friendlyEntityList[i];
+                if(w.type=="worker" && !w.harvesting)
+                {
+                    if(caves.length > 0)
+                    {
+                        let cave = caves[Math.floor(caves.length*Math.random())];
+                        let data = {
+                            type: "doAction",
+                            actionType: "harvest",
+                            id: w.id,
+                            targetId: cave.id
+                        };
+                        cave.numWorkers++;
+                        w.harvesting=true;
+                        ws.send(JSON.stringify(data));
+                    }
+                }
+            }
+            
+        }
     },
     //if the client recieves an update to an entity they will update that entity
     updateEntity: function(data)
@@ -370,7 +417,6 @@ var receivedActions = {
     destroyEntity: function(data)
     {
         let id = data.id;
-        console.log(id);
         for(let i = 0; i < entityList.length; i++)
         {
             let ent = entityList[i];
@@ -518,10 +564,6 @@ function draw()
     fill(0,0,255,100)
     var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
     drawContrastedText(messageText, 20, 20);
-    if(millis()%500==0)
-    {
-        ws.send(queue.pop());
-    }
 }
 
 //find all friendly ents within a selection rectangle and add them to a list
