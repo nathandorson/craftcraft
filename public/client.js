@@ -818,6 +818,7 @@ function prepareEntity()
 //send the server a message to create a new entity
 function createEntity(x,y,entType)
 {
+    console.log("creating " + entType);
     ws.send(JSON.stringify({
         type: "createUnit",
         entityType: entType,
