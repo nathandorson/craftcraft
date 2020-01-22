@@ -7,7 +7,7 @@ var mapSideLength = 1024, tileSideLength = 64; //the size of the game world, and
 var worldMap = []; //a two dimensional array of tiles that is used to represent the world
 var lightDiameter = 200; //how far entities push back the shadows, allowing sight for the client
 var buildRadius = 100; //how far away from houses the client can build
-var resources = 0; // the number of resources this client owns
+var resources = 30; // the number of resources this client owns
 var gameWidth = 640, gameHeight = 640; //the size of the screen
 var controlButtonPressed = false, shiftButtonPressed = false;
 var ws = null;
@@ -60,6 +60,8 @@ class Entity
          * default radius of entity
          */
         this.radius = 10;
+        this.targeting = false;
+
         //find and set type specific info about entity
         let info = entityInfo[this.type];
         for(let prop in info)
@@ -69,8 +71,25 @@ class Entity
     }
 }
 
+function findEntityByID(id, remove=false)
+{
+    for(let i = 0; i < entityList.length; i++)
+    {
+        let entity = entityList[i];
+        if(entity.id == id)
+        {
+            if(remove)
+            {
+                return entityList.splice(i,1);
+            }
+            return entity;
+        }
+    }
+    return null;
+}
+
 function changeEntNums(ent, changeType){
-    var t = ent.unitType
+    var t = ent.type
     if(ent.isFriendly){
         if(t == "worker"){
             fWorkers += -1;
@@ -153,14 +172,16 @@ function connect(target)
     }
 }
 
-function sendMove(x,y, targetID, entity)
+function sendMove(x,y, targetId, entity)
 {
+    console.log("sending move" + str(x) + str(y) + "target ID: " + str(targetId))
     let DEFAULTRADIUS = 40;
     let target = null;
     if(targetId != -1)
     {
         target = findEntityByID(targetId); // get target ent based on id
     }
+    console.log(target)
     if(entity.type !== "cave" && entity.type !== "house")//if ent can move
     {
         let data = null;
@@ -200,8 +221,9 @@ function sendMove(x,y, targetID, entity)
 }
 
 //send the server a message to create a new entity
-function createEntity(x,y,entType)
+function createEntity(x, y, entType)
 {
+    console.log("creating " + str(entType) + " at " + str(x) + ", " + str(y));
     ws.send(JSON.stringify({
         type: "createUnit",
         entityType: entType,
@@ -230,6 +252,7 @@ var receivedActions = {
     //if the client recieves an entity creation, they will add it to the list of entities they know about
     createEntity: function(data)
     {
+        console.log("ent created")
         changeEntNums(data, 1)
         let ent = new Entity(data.unitType, data.id, data.isFriendly, data.x, data.y, data.z);
         entityList.push(ent);
@@ -287,15 +310,16 @@ var receivedActions = {
 function findCave(){
     var cavesFound = 0;
     for(var i = 0; i < entityList.length; i++){
-        if(entityList[i].unitType == "cave"){
+        if(entityList[i].type == "cave"){
             cavesFound ++;
-            if(fworkers < 5){
+            if(fWorkers < 5){
+                console.log("found cave")
                 return entityList[i].id;
             }
-            if(fworkers < 15 && cavesFound > 1){
+            if(fWorkers < 15 && cavesFound > 1){
                 return entityList[i].id;
             }
-            if(fworkers < 25 && cavesFound > 2){
+            if(fWorkers < 25 && cavesFound > 2){
                 return entityList[i].id;
             }
         }
@@ -303,10 +327,10 @@ function findCave(){
     return -1;
 }
 
-function findHouse(){
+function findEnemyHouse(friendly){
     var cavesFound = 0;
     for(var i = 0; i < entityList.length; i++){
-        if(entityList[i].unitType == "cave"){
+        if(entityList[i].type == "cave" && entityList[i].isFriendly == friendly){
             return entityList[i].id;
         }
     }
@@ -314,29 +338,39 @@ function findHouse(){
 }
 
 function makeMoves(){
+    console.log("making move")
+    if(houseCoords == []){
+        var friendlyHouseID = findHouse(true);
+        houseCoords = [findEntityByID(friendlyHouseID).x, findEntityByID(friendlyHouseID).y];
+    }
     if(fWorkers < 5 && resources >= 10){
-        createEntity(houseCoords[0] + 50, houseCoords[1] + 50, "worker");
+        createEntity(0, 0, "worker");
     }
     if(fWorkers % 5 == 1 && resources >= 15){
-        createEntity(houseCoords[0] + 50, houseCoords[1] + 50, "fighter");
+        createEntity(0, 0, "fighter");
     }
     if(fWorkers % 5 != 1 && resources >= 10){
-        createEntity(houseCoords[0] + 50, houseCoords[1] + 50, "worker");
+        createEntity(0, 0, "worker");
     }
     for(var i = 0; i < entityList.length; i++){
         ent = entityList[i];
         if(ent.isFriendly){
-            if(ent.unitType == "worker" && ent.target == null){
+            console.log(ent);
+            if(ent.type == "worker" && !ent.targeting){
+                console.log("sending move 1")
                 sendMove(-1, -1, findCave(), ent);
+                ent.targeting = true;
             }
-            if((ent.unitType == "fighter" && ent.target == null) && fFighters >= 15){
-                houseId = findHouse();
+            if((ent.type == "fighter" && !ent.targeting) && fFighters >= 15){
+                houseId = findHouse(false);
                 if(eHouseCoords != -1){
                     sendMove(1, 1, houseId, ent);
+                    ent.targeting = true;
                 }
                 else{
                     sendMove(1024 * Math.random(), 1024 * Math.random(), -1, ent);
                 }
+
             }
         }
     }
