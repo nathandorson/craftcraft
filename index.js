@@ -44,6 +44,6 @@ function main()
     gameUpdateInterval = setInterval(() => {
         gameWorld.update();
         server.update();
-    }, 1000 / 60); //60 tps
+    }, 1000 / 240); //60 tps
 }
 main();
