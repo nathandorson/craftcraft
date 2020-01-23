@@ -13,7 +13,7 @@ var numWorkers = 0;
 var numFighters = 0;
 var baseX = 0;
 var baseY = 0;
-var queue = [];
+var settling = false;
 //useful information about each of the different entity types and how they are represented
 var entityInfo = {
     worker: {
@@ -57,6 +57,7 @@ class Entity
         this.y = y; //entity y location
         this.z = z; //entity z location (not used at present)
         this.harvesting = false;
+        this.targetId = -1;
         this.mainColor = [255, 255, 255]; //entity's color
         this.outlineColor = [0, 0, 0]; //entity's outline color
         this.outlineWidth = 1; //the width of the outline of the entity
@@ -398,7 +399,24 @@ var receivedActions = {
                     }
                 }
             }
-            
+        }
+        if((ent.type=="house" || ent.type=="fighter" || ent.type=="worker") && !ent.isFriendly)
+        {
+            for(let i = 0; i < friendlyEntityList.length; i++)
+            {
+                let f = friendlyEntityList[i];
+                if(f.type=="fighter" && f.targetId == -1)
+                {
+                    let data = {
+                        type: "doAction",
+                        actionType: "attack",
+                        id: f.id,
+                        targetId: ent.id
+                    };
+                    f.targetId = ent.id;
+                    ws.send(JSON.stringify(data));
+                }
+            }
         }
     },
     //if the client recieves an update to an entity they will update that entity
@@ -412,11 +430,45 @@ var receivedActions = {
             ent.y = data.y;
             ent.z = data.z;
         }
+        if((ent.type=="house" || ent.type=="fighter" || ent.type=="worker") && !ent.isFriendly)
+        {
+            for(let i = 0; i < friendlyEntityList.length; i++)
+            {
+                let f = friendlyEntityList[i];
+                if(f.type=="fighter" && f.targetId == -1)
+                {
+                    let data = {
+                        type: "doAction",
+                        actionType: "attack",
+                        id: f.id,
+                        targetId: ent.id
+                    };
+                    f.targetId = ent.id;
+                    ws.send(JSON.stringify(data));
+                }
+            }
+        }
     },
     //if the client recieves info saying an entity is destroyed they will get rid of it from the list of entities they know about
     destroyEntity: function(data)
     {
         let id = data.id;
+        for(let i = 0; i < friendlyEntityList.length; i++)
+        {
+            let ent = friendlyEntityList[i];
+            if(ent.targetId == id)
+            {
+                ent.targetId = -1;
+                data = {
+                    type: "doAction",
+                    actionType: "move",
+                    id: ent.id,
+                    x: baseY,
+                    y: baseX
+                };
+                ws.send(JSON.stringify(data));
+            }
+        }
         for(let i = 0; i < entityList.length; i++)
         {
             let ent = entityList[i];
@@ -431,7 +483,7 @@ var receivedActions = {
                     }
                     if(ent.type=="fighter")
                     {
-                        numFighters++;
+                        numFighters--;
                     }
                     for(j = 0; j < friendlyEntityList.length; j++)
                     {
@@ -452,7 +504,7 @@ var receivedActions = {
         resources = data.amount;
         if(resources>=15)
         {
-            if(numWorkers<30)
+            if(numWorkers<10)
             {
                 ws.send(JSON.stringify({
                     type: "createUnit",
@@ -461,14 +513,67 @@ var receivedActions = {
                     y: baseY + buildRadius/2
                 }))
             }
-            else
+            else if(numWorkers < 30)
+            {
+                if(numFighters<5)
+                {
+                    ws.send(JSON.stringify({
+                        type: "createUnit",
+                        entityType: "fighter",
+                        x: baseX + buildRadius/2 + Math.random(),
+                        y: baseY - buildRadius/2 + Math.random()
+                    }))
+                }
+                else
+                {
+                    ws.send(JSON.stringify({
+                        type: "createUnit",
+                        entityType: "worker",
+                        x: baseX + buildRadius/2,
+                        y: baseY + buildRadius/2
+                    }))
+                }
+            }
+            else if(numFighters < 16)
             {
                 ws.send(JSON.stringify({
                     type: "createUnit",
                     entityType: "fighter",
-                    x: baseX + buildRadius/2,
-                    y: baseY - buildRadius/2
+                    x: baseX + buildRadius/2 + Math.random(),
+                    y: baseY - buildRadius/2 + Math.random()
                 }))
+            }
+            else if(resources > 100)
+            {
+                if(settling==true)
+                {
+                    ws.send(JSON.stringify({
+                        type: "createUnit",
+                        entityType: "house",
+                        x: baseX,
+                        y: baseY
+                    }))
+                }
+            }
+            else if(settling == false)
+            {
+                for(let i = 0; i < friendlyEntityList.length; i++)
+                {
+                    let w = friendlyEntityList[i];
+                    if(w.type=="worker")
+                    {
+                        data = {
+                            type: "doAction",
+                            actionType: "move",
+                            id: w.id,
+                            x: baseX-10,
+                            y: baseX-10
+                        };
+                        settling = true;
+                        ws.send(JSON.stringify(data));
+                        break;
+                    }
+                }
             }
         }
     }
@@ -615,78 +720,14 @@ function selectEntities(xi, yi, xf, yf, selectType)
     }
 }
 
-//based on target coordinates, for each selected entity, find what kind of action they will take and tell the server
-function sendMove(x,y)
+function keyPressed()
 {
-    let DEFAULTRADIUS = 40;
-    let targetId = -1;
-    for(let i = 0; i < entityList.length; i++) //if the player has targeted an ent, find that ent ant set targetId accordingly
+    if(keyCode===UP_ARROW) //zoom out
     {
-        let ent = entityList[i];
-        if(!ent.isFriendly)
-        {
-            let dist = Math.sqrt((x-ent.x)**2 + (y-ent.y)**2);
-            if(dist < DEFAULTRADIUS)
-            {
-                targetId = ent.id;
-            }
-        }
+        cam.changeScale(cam.scaleLevel * 1.1);
     }
-    let target = null;
-    if(targetId != -1)
+    else if(keyCode===DOWN_ARROW) //zoom in
     {
-        target = findEntityByID(targetId); // get target ent based on id
+        cam.changeScale(cam.scaleLevel / 1.1);
     }
-    for(let i = 0; i < selectedEntities.length; i++)
-    {
-        let entity = selectedEntities[i];
-        if(entity.type !== "cave" && entity.type !== "house")//if ent can move
-        {
-            let data = null;
-            if(entity.type === "worker" && target != null && target.type === "cave") //if a worker targets a cave, start harvesting
-            {
-                data = {
-                    type: "doAction",
-                    actionType: "harvest",
-                    id: entity.id,
-                    targetId: targetId
-                };
-            }
-            else if(target != null && target.type !== "cave") //in any other case if an ent is targeted start attacking
-            {
-                data = {
-                    type: "doAction",
-                    actionType: "attack",
-                    id: entity.id,
-                    targetId: targetId
-                };
-            }
-            else //if no ent is targeted, move
-            {
-                data = {
-                    type: "doAction",
-                    actionType: "move",
-                    id: entity.id,
-                    x: x,
-                    y: y
-                };
-            }
-            if(data != null) //send data to server
-            {
-                ws.send(JSON.stringify(data));
-            }
-        }
-    }
-}
-
-//send the server a message to create a new entity
-function createEntity(x,y,entType)
-{
-    ws.send(JSON.stringify({
-        type: "createUnit",
-        entityType: entType,
-        x: x,
-        y: y
-    }))
-    entityPrimed = false;
 }
