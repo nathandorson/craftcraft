@@ -1,75 +1,20 @@
-//note: surface refers to off-screen graphics buffer
-/**
- * a surface for the terrain background
- */
-var worldSurface = null;
-/**
- * surface for the lights
- */
-var lightSurface = null;
-/**
- * surface for the shadows
- */
-var shadowSurface = null;
-/**
- * map of surfaces for each entity
- */
+var worldSurface = null, lightSurface = null, shadowSurface = null;
 var entitySurfaces = {};
-/**
- * list of entities
- */
-var entityList = [];
-/**
- * list of friendly entities
- */
-var friendlyEntityList = [];
-/**
- * list of selected entities
- */
-var selectedEntities = [];
-/**
- * side length of the map
- */
-var mapSideLength = 1024;
-/**
- * side length of a single terrain tile
- */
-var tileSideLength = 64;
-/**
- * terrain height map
- */
-var worldMap = [];
-/**
- * diameter of a light
- */
-var lightDiameter = 200;
-/**
- * build radius
- */
-var buildRadius = 100;
-/**
- * amount of resources
- */
-var resources = 0;
-/**
- * width the game world
- */
-var gameWidth = 640;
-/**
- * height of the game world
- */
-var gameHeight = 640;
-/**
- * whether the control button is pressed
- */
-var controlButtonPressed = false;
-/**
- * whether the shift button is pressed
- */
-var shiftButtonPressed = false;
-/**
- * list of drawing information about each entity
- */
+var entityList = []; //the list of all entities that this client knows about
+var friendlyEntityList = []; //the list of entities that this client controls
+var selectedEntities = []; //the list of entities that the client currently has selected in order to move them or give them a command
+var mapSideLength = 1024, tileSideLength = 64; //the size of the game world, and the size of each differently colored tile in the world
+var worldMap = []; //a two dimensional array of tiles that is used to represent the world
+var lightDiameter = 200; //how far entities push back the shadows, allowing sight for the client
+var buildRadius = 100; //how far away from houses the client can build
+var resources = 0; // the number of resources this client owns
+var gameWidth = 640, gameHeight = 640; //the size of the screen
+var numWorkers = 0;
+var numFighters = 0;
+var baseX = 0;
+var baseY = 0;
+var queue = [];
+//useful information about each of the different entity types and how they are represented
 var entityInfo = {
     worker: {
         radius: 5,
@@ -92,102 +37,38 @@ var entityInfo = {
         opposingColor: [255, 255, 255]
     }
 }
-/**
- * camera for viewing the world
- */
-var cam = null;
-/**
- * if we are connected to the server
- */
-var connected = false;
-/**
- * the websocket connection to the server
- */
-var ws = null;
-/**
- * first mouse select x position
- */
-var selectionXi = 0;
-/**
- * first mouse select y position
- */
-var selectionYi = 0;
-/**
- * second mouse select x position
- */
-var selectionXf = 0;
-/**
- * second mouse select y position
- */
-var selectionYf = 0;
-/**
- * types of possible actions while selecting
- */
-var entitySelectType = {
-    DIRECT: 0, //reselect everything in selection area
-    ADD: 1, //add selected items to existing selection
-    REMOVE: 2 //remove selected items from existing selection
-};
-/**
- * if we are trying to place an entity
- */
+var cam; //the camera that is used to look around the game world
+var connected = false, ws = null; //if the client is connected, and what websocket they are connected to
+var selectionXi = 0, electionXf = 0, selectionYi = 0, selectionYf = 0;
+var entitySelectType = { DIRECT: 0, ADD: 1, REMOVE: 2 };
 var entityPrimed = false;
+var entCreationX = 0, entCreationY = 0;
 /**
- * entity placement x position
- */
-var entCreationX = 0;
-/**
- * entity placement y position
- */
-var entCreationY = 0;
-/**
- * entity class; stores info about entities and draws them
+ * Class used to keep track of entities that the client knows about
  */
 class Entity
 {
-    constructor(type, id, isFriendly, x, y, z)
+    constructor(type,id,isFriendly,x,y,z)
     {
-        /**
-         * type of entity
-         */
-        this.type = type;
-        /**
-         * id of entity
-         */
-        this.id = id;
-        /**
-         * if the entity is friendly
-         */
-        this.isFriendly = isFriendly;
-        /**
-         * x position of entity
-         */
-        this.x = x;
-        /**
-         * y position of entity
-         */
-        this.y = y;
-        /**
-         * height of entity
-         */
-        this.z = z;
-        /**
-         * outline color of this entity
-         */
-        this.outlineColor = [0, 0, 0];
-        /**
-         * outline width of this entity
-         */
-        this.outlineWidth = 1;
-        /**
-         * default radius of entity
-         */
-        this.radius = 10;
-        //find and set type specific info about entity
+        this.type = type; //entity type
+        this.id = id; //entity id
+        this.isFriendly = isFriendly; //if the client owns the entity
+        this.x = x; //entity x location
+        this.y = y; //entity y location
+        this.z = z; //entity z location (not used at present)
+        this.harvesting = false;
+        this.mainColor = [255, 255, 255]; //entity's color
+        this.outlineColor = [0, 0, 0]; //entity's outline color
+        this.outlineWidth = 1; //the width of the outline of the entity
+        this.radius = 10; //the radius of this entity (they are just circles)
         let info = entityInfo[this.type];
         for(let prop in info)
         {
             this[prop] = info[prop];
+        }
+        if(this.type=="cave")
+        {
+            this.numWorkers = 0;
         }
     }
     /**
@@ -195,12 +76,10 @@ class Entity
      */
     draw()
     {
-        // if there is no surface for this entity, make one
         if(typeof entitySurfaces[this.type] === "undefined")
         {
             updateEntitySurface(this);
         }
-        //if there is a surface for this entity, draw it
         if(typeof entitySurfaces[this.type] !== "undefined")
         {
             image(entitySurfaces[this.type], this.x - this.radius, this.y - this.radius);
@@ -212,59 +91,25 @@ class Entity
  */
 class Camera
 {
-    /**
-     * creates a new camera
-     */
     constructor()
     {
-        /**
-         * top left x position of camera
-         */
-        this.x = 0;
-        /**
-         * top left y position of camera
-         */
-        this.y = 0;
-        /**
-         * x velocity of camera
-         */
-        this.vx = 0;
-        /**
-         * y velocity of camera
-         */
-        this.vy = 0;
-        /**
-         * zoom level of camera
-         */
-        this.scaleLevel = 1.5;
-        /**
-         * speed multiplier of camera
-         */
-        this.panSpeedMultiplier = 12;
-        /**
-         * maximum panning speed
-         */
-        this.maxPanSpeed = 9;
-        /**
-         * area of zone on sides of the screen to trigger camera movement
-         */
-        this.panTriggerWidth = 100;
-        /**
-         * percentage of view size we can go off screen
-         */
-        this.limitPercentage = 0.1;
+        this.x = 0; //camera x location (top left)
+        this.y = 0; //camera y location (top left)
+        this.vx = 0; //camera movevent speed in the x direction
+        this.vy = 0; //camera movement speed in the y direction
+        this.scaleLevel = 1.5; //the zoom level of the camera
+        this.panSpeedMultiplier = 12; //how fast the camera ramps up speed
+        this.maxPanSpeed = 9; //the max camera movement speed
+        this.panTriggerWidth = 100; //how close to the edge the mouse must be to trigger camera movement
+        this.limitPercentage = 0.1; //the limit on where the camera moves relative to the map (so you cannot go too far off the side of the map)
         this.updateLimits();
     }
-    /**
-     * set scale level for drawing
-     */
+    //Zooms the camera to the current zoom level
     zoom()
     {
         scale(this.scaleLevel);
     }
-    /**
-     * update the camera bounds
-     */
+    //Changes the boundaries on camera for when the camera zooms
     updateLimits()
     {
         this.minx = -( width * this.limitPercentage );
@@ -272,9 +117,7 @@ class Camera
         this.maxx = gameWidth * this.scaleLevel - (width * (1 - this.limitPercentage));
         this.maxy = gameHeight * this.scaleLevel - (height * (1 - this.limitPercentage));
     }
-    /**
-     * check for camera panning and pan the camera if necessary
-     */
+    //Moves the camera to its correct position. Called every draw() step so the camera is always in the correct spot
     pan()
     {
         this.vx = 0;
@@ -314,19 +157,14 @@ class Camera
         if(this.x > this.maxx) this.x = this.maxx;
         if(this.y > this.maxy) this.y = this.maxy;
     }
-    /**
-     * updates this camera for drawing
-     */
+    //Does all relevant movements for the camera. Done every draw() step
     update()
     {
         this.pan();
         this.zoom();
         translate(-this.x, -this.y);
     }
-    /**
-     * change zoom level
-     * @param {number} newScale zoom level to change to
-     */
+    //Rescales the camera
     changeScale(newScale)
     {
         let widthChange = (width / newScale) - (width / this.scaleLevel);
@@ -395,7 +233,7 @@ function updateShadowSurface()
     }
     shadowSurface.blendMode(shadowSurface.BLEND);
     shadowSurface.clear();
-    shadowSurface.background(0, 127);
+    shadowSurface.background(0,127);
     shadowSurface.blendMode(shadowSurface.REMOVE);
     //update light surface too
     let drawLightDiam = lightDiameter * cam.scaleLevel;
@@ -465,6 +303,102 @@ var receivedActions = {
         if(ent.isFriendly)
         {
             friendlyEntityList.push(ent);
+            if(ent.type=="worker")
+            {
+                numWorkers++;
+                let caves = [];
+                for(let i = 0; i < entityList.length; i++)
+                {
+                    let c = entityList[i];
+                    if(c.type=="cave" && c.numWorkers < 4)
+                    {
+                        caves.push(c);
+                    }
+                }
+                console.log("worker made")
+                if(caves.length > 0)
+                {
+                    console.log("caves found")
+                    let cave = caves[Math.floor(caves.length*Math.random())]; //todo CAVES DONT EXIST YET
+                    let data = {
+                        type: "doAction",
+                        actionType: "harvest",
+                        id: ent.id,
+                        targetId: cave.id
+                    };
+                    cave.numWorkers++;
+                    findEntityByID(ent.id).harvesting = true;
+                    ws.send(JSON.stringify(data));
+                }
+            }
+            if(ent.type=="fighter")
+            {
+                numFighters++;
+                data = {
+                    type: "doAction",
+                    actionType: "move",
+                    id: ent.id,
+                    x: baseY,
+                    y: baseX
+                };
+                ws.send(JSON.stringify(data));
+            }
+            if(ent.type=="house")
+            {
+                baseX = ent.x;
+                baseY = ent.y;
+                ws.send(JSON.stringify({
+                    type: "createUnit",
+                    entityType: "worker",
+                    x: ent.x+buildRadius/2,
+                    y: ent.y+buildRadius/2
+                }))
+                ws.send(JSON.stringify({
+                    type: "createUnit",
+                    entityType: "worker",
+                    x: ent.x-buildRadius/2,
+                    y: ent.y+buildRadius/2
+                }))
+                ws.send(JSON.stringify({
+                    type: "createUnit",
+                    entityType: "worker",
+                    x: ent.x+buildRadius/2,
+                    y: ent.y-buildRadius/2
+                }))
+            }
+        }
+        if(ent.type == "cave")
+        {
+            let caves = [];
+            for(let i = 0; i < entityList.length; i++)
+            {
+                let c = entityList[i];
+                if(c.type=="cave" && c.numWorkers < 4)
+                {
+                    caves.push(c);
+                }
+            }
+            for(let i = 0; i < friendlyEntityList.length; i++)
+            {
+                let w = friendlyEntityList[i];
+                if(w.type=="worker" && !w.harvesting)
+                {
+                    if(caves.length > 0)
+                    {
+                        let cave = caves[Math.floor(caves.length*Math.random())];
+                        let data = {
+                            type: "doAction",
+                            actionType: "harvest",
+                            id: w.id,
+                            targetId: cave.id
+                        };
+                        cave.numWorkers++;
+                        w.harvesting=true;
+                        ws.send(JSON.stringify(data));
+                    }
+                }
+            }
+            
         }
     },
     //if the client recieves an update to an entity they will update that entity
@@ -483,7 +417,6 @@ var receivedActions = {
     destroyEntity: function(data)
     {
         let id = data.id;
-        //console.log(id);
         for(let i = 0; i < entityList.length; i++)
         {
             let ent = entityList[i];
@@ -492,6 +425,14 @@ var receivedActions = {
                 entityList.splice(i, 1);
                 if(ent.isFriendly)
                 {
+                    if(ent.type=="worker")
+                    {
+                        numWorkers--;
+                    }
+                    if(ent.type=="fighter")
+                    {
+                        numFighters++;
+                    }
                     for(j = 0; j < friendlyEntityList.length; j++)
                     {
                         if(friendlyEntityList[j] == ent)
@@ -509,6 +450,27 @@ var receivedActions = {
     updateResources: function(data)
     {
         resources = data.amount;
+        if(resources>=15)
+        {
+            if(numWorkers<30)
+            {
+                ws.send(JSON.stringify({
+                    type: "createUnit",
+                    entityType: "worker",
+                    x: baseX + buildRadius/2,
+                    y: baseY + buildRadius/2
+                }))
+            }
+            else
+            {
+                ws.send(JSON.stringify({
+                    type: "createUnit",
+                    entityType: "fighter",
+                    x: baseX + buildRadius/2,
+                    y: baseY - buildRadius/2
+                }))
+            }
+        }
     }
 }
 //attempts to connect to a specified ip address
@@ -549,11 +511,9 @@ function connect(target)
 function setup()
 {
     createCanvas(windowWidth, windowHeight);
-    //background(255);
+    background(255);
     cam = new Camera();
     connect(startupConnectionAddress);
-    noLoop();
-    setInterval(() => { draw(); }, 1000 / 60);
 }
 //resizes the window on the monitor
 function windowResized()
@@ -602,47 +562,6 @@ function draw()
     pop();
     image(shadowSurface, 0, 0);
     fill(0,0,255,100)
-    if(mouseIsPressed) //draw aslection rectangle
-    {
-        let selCoord = gameToUICoord(selectionXi, selectionYi);
-        rect(selCoord[0], selCoord[1], mouseX - selCoord[0], mouseY - selCoord[1]);
-    }
-    if(entityPrimed)
-    {
-        var messageText = "Press 1 for a house, 2 for a fighter, 3 for a worker."; //prompt user
-        drawContrastedText(messageText, 20, 52);
-
-        let minDist = Infinity; 
-        let coordinates = UIToGameCoord(mouseX,mouseY);
-        let x = coordinates[0];
-        let y = coordinates[1];
-        for(let i = 0; i < entityList.length; i++) //find the closest valid (close to a house) spawnpoint for a new ent
-        {
-            let ent = entityList[i]; //bug: need to look at workers when placing a house
-            if(ent.type == "house" && ent.isFriendly)
-            {
-                let dist = Math.sqrt((x - ent.x)**2 + (y - ent.y)**2);
-                //console.log(dist);
-                if(dist < minDist)
-                {
-                    minDist = dist;
-                    if(dist > buildRadius)
-                    {
-                        entCreationX = ent.x + buildRadius*(x - ent.x)/dist;
-                        entCreationY = ent.y + buildRadius*(y - ent.y)/dist;
-                    }
-                    else
-                    {
-                        entCreationX = x;
-                        entCreationY = y;
-                    }
-                }
-            }
-        }
-        let UIcoordinates = gameToUICoord(entCreationX,entCreationY);
-        fill(0);
-        ellipse(UIcoordinates[0],UIcoordinates[1],10,10); //ellipse shows user where the ent will be placed
-    }
     var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
     drawContrastedText(messageText, 20, 20);
 }
@@ -758,67 +677,11 @@ function sendMove(x,y)
             }
         }
     }
-    // if(targetId != -1)
-    // {
-    //     let target = findEntityByID(targetId)
-    //     if(target.type != "cave"){
-    //         for(let i = 0; i < selectedEntities.length; i++)
-    //         {
-    //             let ent = selectedEntities[i];
-    //             ws.send(JSON.stringify({
-    //                 type: "doAction",
-    //                 actionType: "attack",
-    //                 id: ent.id,
-    //                 targetId: targetId
-    //             }));
-    //         }
-    //     }
-    //     else
-    //     {
-    //         for(let i = 0; i < selectedEntities.length; i++)
-    //         {
-    //             let ent = selectedEntities[i];
-    //             if(ent === "worker")
-    //             {
-    //                 ws.send(JSON.stringify({
-    //                     type: "doAction",
-    //                     actionType: "harvest",
-    //                     id: ent.id,
-    //                     targetId: targetId
-    //                 }));
-    //             }
-    //         }
-    //     }
-    // }
-    // else
-    // {
-    //     for(let i = 0; i < selectedEntities.length; i++)
-    //     {
-    //         let ent = selectedEntities[i];
-    //         if(ent.type != "house" && ent.type != "cave")
-    //         {
-    //             ws.send(JSON.stringify({
-    //                 type: "doAction",
-    //                 actionType: "move",
-    //                 id: ent.id,
-    //                 x: x,
-    //                 y: y
-    //             }));
-    //         }
-    //     }
-    // }
-}
-
-//prime an entity
-function prepareEntity()
-{
-    entityPrimed = true;
 }
 
 //send the server a message to create a new entity
 function createEntity(x,y,entType)
 {
-    console.log("creating " + entType);
     ws.send(JSON.stringify({
         type: "createUnit",
         entityType: entType,
@@ -826,106 +689,4 @@ function createEntity(x,y,entType)
         y: y
     }))
     entityPrimed = false;
-}
-
-//start selecting ents by dragging a rectangle over them
-function mousePressed()
-{
-    if(mouseButton == LEFT)
-    {
-        let selCoord = UIToGameCoord(mouseX, mouseY);
-        selectionXi = selCoord[0];
-        selectionYi = selCoord[1];
-    }
-}
-
-//finish selecting ents by dragging a rectangle over them
-function mouseReleased()
-{
-    if(mouseButton == LEFT)
-    {
-        let selCoord = UIToGameCoord(mouseX, mouseY);
-        selectionXf = selCoord[0];
-        selectionYf = selCoord[1];
-        let mode = entitySelectType.DIRECT;
-        if(controlButtonPressed)
-        {
-            mode = entitySelectType.ADD;
-        }
-        else if(shiftButtonPressed)
-        {
-            mode = entitySelectType.REMOVE;
-        }
-        selectEntities(selectionXi, selectionYi, selectionXf, selectionYf, mode);
-    }
-}
-function mouseClicked() //right click to do action
-{
-    if(mouseButton == RIGHT)
-    {
-        sendMove(mouseX,mouseY);
-    }
-}
-function keyPressed()
-{
-    if(entityPrimed) //player has pressed a button to create an ent
-    {
-        if(key=='1')
-        {
-            entCreationX = UIToGameCoord(mouseX);
-            entCreationY = UIToGameCoord(mouseY);
-            createEntity(entCreationX,entCreationY,"house");
-        }
-        if(key=='2')
-        {
-            createEntity(entCreationX,entCreationY,"fighter");
-        }
-        if(key=='3')
-        {
-            createEntity(entCreationX,entCreationY,"worker");
-        }
-    }
-    if(keyCode===UP_ARROW) //zoom out
-    {
-        cam.changeScale(cam.scaleLevel * 1.1);
-    }
-    else if(keyCode===DOWN_ARROW) //zoom in
-    {
-        cam.changeScale(cam.scaleLevel / 1.1);
-    }
-    else if(keyCode === CONTROL)
-    {
-        controlButtonPressed = true;
-    }
-    else if(keyCode === SHIFT)
-    {
-        shiftButtonPressed = true;
-    }
-    else if(key=='c') //begin to create an entity, a prompt will appear asking which kind
-    {
-        if(!entityPrimed)
-        {
-            prepareEntity();
-        }
-        else
-        {
-            entityPrimed = false;
-        }
-    }
-    else if(key=='s' || key=='a') //action
-    {
-        sendMove(mouseX/cam.scaleLevel+cam.x,mouseY/cam.scaleLevel+cam.y);
-    }
-    
-}
-function keyReleased()
-{
-    if(keyCode === CONTROL)
-    {
-        controlButtonPressed = false;
-    }
-    else if(keyCode === SHIFT)
-    {
-        shiftButtonPressed = false;
-    }
 }
