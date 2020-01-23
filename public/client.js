@@ -522,9 +522,11 @@ function connect(target)
     //when a connection is opened the client sends a JSON object to the server saying that they have connected
     ws.onopen = function() {
         console.log("connected to " + target);
+        let pname = "player " + Math.floor(Math.random() * 10000);
+        console.log("sending join request with name \"" + pname + "\"");
         ws.send(JSON.stringify({
             type: "join",
-            name: "player " + Math.floor(Math.random() * 10000)
+            name: pname
         }));
         connected = true;
     };
