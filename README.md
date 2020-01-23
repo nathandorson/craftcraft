@@ -1,5 +1,7 @@
 # craftcraft
 
+files also available at https://github.com/nathandorson/craftcraft
+
 made by Forrest DeLay, Nathaniel Dorson, and Alan
 The idea of the project is to create a game iwth a similar idea to StarCraft or other RTS games.
 There are 4 different types of units: caves, workers, fighters, and houses
