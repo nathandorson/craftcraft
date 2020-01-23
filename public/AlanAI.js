@@ -149,7 +149,8 @@ function connect(target)
     ws.onopen = function() {
         console.log("connected to " + target);
         ws.send(JSON.stringify({
-            type: "join"
+            type: "join",
+            name: "a's ai"
         }));
         connected = true;
     };
@@ -327,10 +328,10 @@ function findCave(){
     return -1;
 }
 
-function findEnemyHouse(friendly){
+function findHouse(friendly){
     var cavesFound = 0;
     for(var i = 0; i < entityList.length; i++){
-        if(entityList[i].type == "cave" && entityList[i].isFriendly == friendly){
+        if(entityList[i].type == "house" && entityList[i].isFriendly == friendly){
             return entityList[i].id;
         }
     }
@@ -338,24 +339,28 @@ function findEnemyHouse(friendly){
 }
 
 function makeMoves(){
-    console.log("making move")
+    console.log(fWorkers);
     if(houseCoords == []){
         var friendlyHouseID = findHouse(true);
         houseCoords = [findEntityByID(friendlyHouseID).x, findEntityByID(friendlyHouseID).y];
     }
     if(fWorkers < 5 && resources >= 10){
+        console.log("creating initial worker");
         createEntity(0, 0, "worker");
+        fWorkers++;
     }
     if(fWorkers % 5 == 1 && resources >= 15){
         createEntity(0, 0, "fighter");
+        fFighters++;
     }
-    if(fWorkers % 5 != 1 && resources >= 10){
+    if((fWorkers % 5 != 1 && resources >= 10) || (fWorkers == 0 && resources >= 10 && resources <= 15)){
+        console.log("creating another worker");
         createEntity(0, 0, "worker");
+        fWorkers++;
     }
     for(var i = 0; i < entityList.length; i++){
         ent = entityList[i];
         if(ent.isFriendly){
-            console.log(ent);
             if(ent.type == "worker" && !ent.targeting){
                 console.log("sending move 1")
                 sendMove(-1, -1, findCave(), ent);
@@ -363,7 +368,7 @@ function makeMoves(){
             }
             if((ent.type == "fighter" && !ent.targeting) && fFighters >= 15){
                 houseId = findHouse(false);
-                if(eHouseCoords != -1){
+                if(houseId != -1){
                     sendMove(1, 1, houseId, ent);
                     ent.targeting = true;
                 }

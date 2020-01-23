@@ -23,6 +23,7 @@ var entityList = [];
  * list of friendly entities
  */
 var friendlyEntityList = [];
+var enemyEntityList = [];
 /**
  * list of selected entities
  */
@@ -466,6 +467,28 @@ var receivedActions = {
         {
             friendlyEntityList.push(ent);
         }
+        else
+        {
+            if(ent.type !== "cave")
+            {
+                enemyEntityList.push(ent);
+            }
+        }
+        switch(ent.type)
+        {
+            case "cave":
+                caveList.push(ent);
+                break;
+            case "worker":
+                workerList.push(ent);
+                break;
+            case "fighter":
+                fighterList.push(ent);
+                break;
+            case "house":
+                houseList.push(ent);
+                break;
+        }
     },
     //if the client recieves an update to an entity they will update that entity
     updateEntity: function(data)
@@ -501,6 +524,25 @@ var receivedActions = {
                         }
                     }
                 }
+                else
+                {
+                    enemyEntityList.splice(enemyEntityList.indexOf(ent), 1);
+                }
+                switch(ent.type)
+                {
+                    case "cave":
+                        caveList.splice(caveList.indexOf(ent), 1);
+                        break;
+                    case "worker":
+                        workerList.splice(workerList.indexOf(ent), 1);
+                        break;
+                    case "fighter":
+                        fighterList.splice(fighterList.indexOf(ent), 1);
+                        break;
+                    case "house":
+                        houseList.splice(houseList.indexOf(ent), 1);
+                        break;
+                }
                 break;
             }
         }
@@ -522,11 +564,9 @@ function connect(target)
     //when a connection is opened the client sends a JSON object to the server saying that they have connected
     ws.onopen = function() {
         console.log("connected to " + target);
-        let pname = "player " + Math.floor(Math.random() * 10000);
-        console.log("sending join request with name \"" + pname + "\"");
         ws.send(JSON.stringify({
             type: "join",
-            name: pname
+            name: "s's ai"
         }));
         connected = true;
     };
@@ -554,7 +594,7 @@ function setup()
     createCanvas(windowWidth, windowHeight);
     //background(255);
     cam = new Camera();
-    connect(startupConnectionAddress);
+    connect("ws://127.0.0.1:5524");
     noLoop();
     setInterval(() => { draw(); }, 1000 / 60);
 }
@@ -595,6 +635,11 @@ function UIToGameCoord(x, y)
         (y / cam.scaleLevel) + cam.y
     ];
 }
+var entityNumbersRate = 8;
+var currentEntityNumberRateAmount = 0;
+var caveList = [], workerList = [], fighterList = [], houseList = [];
+var hasCreatedWorkers = false;
+var maxCaveDist = 384;
 //draws the game and the user interface
 function draw()
 {
@@ -604,47 +649,99 @@ function draw()
     drawWorld();
     pop();
     image(shadowSurface, 0, 0);
-    fill(0,0,255,100)
-    if(mouseIsPressed) //draw aslection rectangle
+    fill(0,0,255,100);
+    if(currentEntityNumberRateAmount >= 0)
     {
-        let selCoord = gameToUICoord(selectionXi, selectionYi);
-        rect(selCoord[0], selCoord[1], mouseX - selCoord[0], mouseY - selCoord[1]);
+        currentEntityNumberRateAmount--;
     }
-    if(entityPrimed)
+    else
     {
-        var messageText = "Press 1 for a house, 2 for a fighter, 3 for a worker."; //prompt user
-        drawContrastedText(messageText, 20, 52);
-
-        let minDist = Infinity; 
-        let coordinates = UIToGameCoord(mouseX,mouseY);
-        let x = coordinates[0];
-        let y = coordinates[1];
-        for(let i = 0; i < entityList.length; i++) //find the closest valid (close to a house) spawnpoint for a new ent
+        if(houseList != null && houseList.length > 0)
         {
-            let ent = entityList[i]; //bug: need to look at workers when placing a house
-            if(ent.type == "house" && ent.isFriendly)
+            let house = houseList[0];
+            let angle = Math.random() * 2 * Math.PI;
+            let xoff = Math.cos(angle) * 64;
+            let yoff = Math.sin(angle) * 64;
+            if(workerList.length < 6 || workerList.length <= fighterList.length) // 1:1
             {
-                let dist = Math.sqrt((x - ent.x)**2 + (y - ent.y)**2);
-                //console.log(dist);
-                if(dist < minDist)
+                if(resources >= 10 || !hasCreatedWorkers)
                 {
-                    minDist = dist;
-                    if(dist > buildRadius)
-                    {
-                        entCreationX = ent.x + buildRadius*(x - ent.x)/dist;
-                        entCreationY = ent.y + buildRadius*(y - ent.y)/dist;
-                    }
-                    else
-                    {
-                        entCreationX = x;
-                        entCreationY = y;
-                    }
+                    createEntity(house.x + xoff, house.y + yoff, "worker");
+                    hasCreatedWorkers = true;
+                }
+            }
+            else
+            {
+                if(resources >= 15)
+                {
+                    createEntity(house.x + xoff, house.y + yoff, "fighter");
                 }
             }
         }
-        let UIcoordinates = gameToUICoord(entCreationX,entCreationY);
-        fill(0);
-        ellipse(UIcoordinates[0],UIcoordinates[1],10,10); //ellipse shows user where the ent will be placed
+        if(caveList.length > 0 && houseList.length > 0)
+        {
+            let potentialCaves = [];
+            let hx = houseList[0].x;
+            let hy = houseList[0].y;
+            for(let i = 0; i < caveList.length; i++)
+            {
+                let cave = caveList[i];
+                if((cave.x - hx) ** 2 + (cave.y - hy) ** 2 < maxCaveDist ** 2)
+                {
+                    potentialCaves.push(cave);
+                }
+            }
+            let caveInd = 0;
+            for(let i = 0; i < workerList.length; i++)
+            {
+                let worker = workerList[i];
+                let cave = potentialCaves[caveInd];
+                ws.send(JSON.stringify({
+                    type: "doAction",
+                    actionType: "harvest",
+                    id: worker.id,
+                    targetId: cave.id
+                }));
+                caveInd++;
+                if(caveInd >= potentialCaves.length) caveInd = 0;
+            }
+        }
+        if(fighterList.length >= 12)
+        {
+            for(let i = 0; i < fighterList.length; i++)
+            {
+                let fighter = fighterList[i];
+                if(houseList.length > 0)
+                {
+                    ws.send(JSON.stringify({
+                        type: "doAction",
+                        actionType: "move",
+                        id: fighter.id,
+                        x: gameWidth - houseList[0].x,
+                        y: gameHeight - houseList[0].y
+                    }));
+                }
+            }
+        }
+        if(enemyEntityList.length > 0)
+        {
+            let enemyInd = 0;
+            for(let i = 0; i < fighterList.length; i++)
+            {
+                let fighter = fighterList[i];
+                let enemy = enemyEntityList[Math.floor(enemyInd)];
+                ws.send(JSON.stringify({
+                    type: "doAction",
+                    actionType: "attack",
+                    id: fighter.id,
+                    targetId: enemy.id
+                }));
+                enemyInd += 0.5;
+                if(enemyInd >= enemyEntityList.length) enemyInd = 0;
+            }
+        }
+
+        currentEntityNumberRateAmount = entityNumbersRate;
     }
     var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
     drawContrastedText(messageText, 20, 20);
@@ -821,7 +918,6 @@ function prepareEntity()
 //send the server a message to create a new entity
 function createEntity(x,y,entType)
 {
-    console.log("creating " + entType);
     ws.send(JSON.stringify({
         type: "createUnit",
         entityType: entType,
@@ -833,7 +929,7 @@ function createEntity(x,y,entType)
 
 //start selecting ents by dragging a rectangle over them
 function mousePressed()
-{
+{'s'
     if(mouseButton == LEFT)
     {
         let selCoord = UIToGameCoord(mouseX, mouseY);
@@ -845,7 +941,7 @@ function mousePressed()
 //finish selecting ents by dragging a rectangle over them
 function mouseReleased()
 {
-    if(mouseButton == LEFT)
+    /*if(mouseButton == LEFT)
     {
         let selCoord = UIToGameCoord(mouseX, mouseY);
         selectionXf = selCoord[0];
@@ -860,18 +956,18 @@ function mouseReleased()
             mode = entitySelectType.REMOVE;
         }
         selectEntities(selectionXi, selectionYi, selectionXf, selectionYf, mode);
-    }
+    }*/
 }
 function mouseClicked() //right click to do action
 {
-    if(mouseButton == RIGHT)
+    /*if(mouseButton == RIGHT)
     {
         sendMove(mouseX,mouseY);
-    }
+    */}
 }
 function keyPressed()
 {
-    if(entityPrimed) //player has pressed a button to create an ent
+    /*if(entityPrimed) //player has pressed a button to create an ent
     {
         if(key=='1')
         {
@@ -887,7 +983,7 @@ function keyPressed()
         {
             createEntity(entCreationX,entCreationY,"worker");
         }
-    }
+    }*/
     if(keyCode===UP_ARROW) //zoom out
     {
         cam.changeScale(cam.scaleLevel * 1.1);
@@ -896,13 +992,17 @@ function keyPressed()
     {
         cam.changeScale(cam.scaleLevel / 1.1);
     }
-    else if(keyCode === CONTROL)
+    /*else if(keyCode === CONTROL)
     {
         controlButtonPressed = true;
     }
     else if(keyCode === SHIFT)
     {
         shiftButtonPressed = true;
+    }
+    if(key=='a'||key=='A')
+    {
+        //something something attack with all selected units that are valid to do so
     }
     else if(key=='c') //begin to create an entity, a prompt will appear asking which kind
     {
@@ -915,10 +1015,10 @@ function keyPressed()
             entityPrimed = false;
         }
     }
-    else if(key=='s' || key=='a') //action
+    else if(key=='s') //action
     {
         sendMove(mouseX/cam.scaleLevel+cam.x,mouseY/cam.scaleLevel+cam.y);
-    }
+    }*/
     
 }
 function keyReleased()

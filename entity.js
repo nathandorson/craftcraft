@@ -320,14 +320,11 @@ class Entity
         }
         if(this.type === "house")
         {
-            try
+            let otherPlayer = this.owner.getOpposingPlayer();
+            let win = otherPlayer.checkWin();
+            if(win)
             {
-                let otherPlayer = this.owner.getOpposingPlayer();
-                console.log(otherPlayer.checkWin());
-            }
-            catch(e)
-            {
-                debugger;
+                this.game.emitter.emit("win", this.owner);
             }
         }
     }
