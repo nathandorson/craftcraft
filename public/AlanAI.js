@@ -279,7 +279,6 @@ var receivedActions = {
     {
         let id = data.id;
         changeEntNums(data, -1);
-        console.log(id);
         for(let i = 0; i < entityList.length; i++)
         {
             let ent = entityList[i];
@@ -349,9 +348,10 @@ function makeMoves(){
         createEntity(0, 0, "worker");
         fWorkers++;
     }
-    if(fWorkers % 5 == 1 && resources >= 15){
+    if(fWorkers > 5 && fWorkers % 5 == 1 && resources >= 15){
         createEntity(0, 0, "fighter");
         fFighters++;
+        fWorkers++;
     }
     if((fWorkers % 5 != 1 && resources >= 10) || (fWorkers == 0 && resources >= 10 && resources <= 15)){
         console.log("creating another worker");
@@ -366,7 +366,7 @@ function makeMoves(){
                 sendMove(-1, -1, findCave(), ent);
                 ent.targeting = true;
             }
-            if((ent.type == "fighter" && !ent.targeting) && fFighters >= 15){
+            if((ent.type == "fighter" && !ent.targeting) && fFighters >= 5){
                 houseId = findHouse(false);
                 if(houseId != -1){
                     sendMove(1, 1, houseId, ent);
