@@ -14,6 +14,10 @@ var GameBoard = require("./game.js");
  * main loop
  */
 var gameUpdateInterval;
+/**
+ * number of game/server ticks per second
+ */
+var tps = 240;
 
 /**
  * beginning of program
@@ -39,11 +43,15 @@ function main()
     //create game world
     gameWorld = new GameBoard();
     //start server
-    server.run(gameWorld);
+    server.run(gameWorld, (winnerName) => {
+        console.log(winnerName + " has won the game");
+        console.log("ending game loop");
+        clearInterval(gameUpdateInterval);
+    });
     //start game loop
     gameUpdateInterval = setInterval(() => {
         gameWorld.update();
         server.update();
-    }, 1000 / 240); //60 tps
+    }, 1000 / tps);
 }
 main();

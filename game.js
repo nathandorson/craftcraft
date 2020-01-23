@@ -191,6 +191,9 @@ class Player
             entity.emitter.on("resource", () => {
                 _this.emitter.emit("resource", _this.resources, false);
             });
+            entity.emitter.on("win", () => {
+                _this.emitter.emit("win");
+            });
             this.game.addEntity(entity);
             this.emitter.emit("create", entity, false);
         }

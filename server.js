@@ -18,6 +18,10 @@ var port = 5524;
  */
 var clientList;
 /**
+ * when someone wins, call this
+ */
+var winCallback;
+/**
  * functions to call when we receive a specific action from the client
  */
 var receivedActions = {
@@ -73,6 +77,15 @@ var receivedActions = {
      * @param {*} data data from client
      */
     join: function(cl, data) {
+        if(data.hasOwnProperty("name"))
+        {
+            let name = data["name"];
+            cl.name = name;
+        }
+        else
+        {
+            cl.name = "unnamed client";
+        }
         cl.setPlayer(game.requestPlayer());
         let entityList = game.getEntityList(cl.player, false);
         for(let i = 0; i < entityList.length; i++)
@@ -149,6 +162,10 @@ class ConnectedClient
      */
     constructor(socket)
     {
+        /**
+         * name of this client specified by the client
+         */
+        this.name = "";
         /**
          * socket for the client
          */
@@ -301,6 +318,9 @@ class ConnectedClient
         //player.emitter.on("update", this.updateUnit);
         player.emitter.on("destroy", this.destroyUnit);
         player.emitter.on("resource", this.updateResources);
+        player.emitter.on("win", () => {
+            winCallback(this.name);
+        });
         this.sendWorld();
     }
     /**
@@ -335,7 +355,7 @@ module.exports = {
      * starts the server
      * @param {GameBoard} g a reference to the game world
      */
-    run: function(g)
+    run: function(g, winCallback)
     {
         game = g;
         clientList = [];

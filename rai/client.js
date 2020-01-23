@@ -565,7 +565,8 @@ function connect(target)
     ws.onopen = function() {
         console.log("connected to " + target);
         ws.send(JSON.stringify({
-            type: "join"
+            type: "join",
+            name: "s's ai"
         }));
         connected = true;
     };
@@ -661,7 +662,7 @@ function draw()
             let angle = Math.random() * 2 * Math.PI;
             let xoff = Math.cos(angle) * 64;
             let yoff = Math.sin(angle) * 64;
-            if(workerList.length < 6 || workerList.length <= 0.5 * fighterList.length)
+            if(workerList.length < 6 || workerList.length <= fighterList.length) // 1:1
             {
                 if(resources >= 10 || !hasCreatedWorkers)
                 {
@@ -928,7 +929,7 @@ function createEntity(x,y,entType)
 
 //start selecting ents by dragging a rectangle over them
 function mousePressed()
-{
+{'s'
     if(mouseButton == LEFT)
     {
         let selCoord = UIToGameCoord(mouseX, mouseY);
@@ -940,7 +941,7 @@ function mousePressed()
 //finish selecting ents by dragging a rectangle over them
 function mouseReleased()
 {
-    if(mouseButton == LEFT)
+    /*if(mouseButton == LEFT)
     {
         let selCoord = UIToGameCoord(mouseX, mouseY);
         selectionXf = selCoord[0];
@@ -955,18 +956,18 @@ function mouseReleased()
             mode = entitySelectType.REMOVE;
         }
         selectEntities(selectionXi, selectionYi, selectionXf, selectionYf, mode);
-    }
+    }*/
 }
 function mouseClicked() //right click to do action
 {
-    if(mouseButton == RIGHT)
+    /*if(mouseButton == RIGHT)
     {
         sendMove(mouseX,mouseY);
-    }
+    */}
 }
 function keyPressed()
 {
-    if(entityPrimed) //player has pressed a button to create an ent
+    /*if(entityPrimed) //player has pressed a button to create an ent
     {
         if(key=='1')
         {
@@ -982,7 +983,7 @@ function keyPressed()
         {
             createEntity(entCreationX,entCreationY,"worker");
         }
-    }
+    }*/
     if(keyCode===UP_ARROW) //zoom out
     {
         cam.changeScale(cam.scaleLevel * 1.1);
@@ -991,7 +992,7 @@ function keyPressed()
     {
         cam.changeScale(cam.scaleLevel / 1.1);
     }
-    else if(keyCode === CONTROL)
+    /*else if(keyCode === CONTROL)
     {
         controlButtonPressed = true;
     }
@@ -1017,7 +1018,7 @@ function keyPressed()
     else if(key=='s') //action
     {
         sendMove(mouseX/cam.scaleLevel+cam.x,mouseY/cam.scaleLevel+cam.y);
-    }
+    }*/
     
 }
 function keyReleased()
