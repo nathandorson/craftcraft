@@ -963,7 +963,7 @@ function mouseClicked() //right click to do action
     /*if(mouseButton == RIGHT)
     {
         sendMove(mouseX,mouseY);
-    */}
+    *///}
 }
 function keyPressed()
 {
