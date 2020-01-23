@@ -448,24 +448,6 @@ var receivedActions = {
                 }
             }
         }
-        if(ent.isFriendly && ent.type=="fighter" && ent.targetId == -1)
-        {
-            for(let i = 0; i < entityList.length; i++)
-            {
-                let h = entityList[i];
-                if(h.type=="house" && !h.isFriendly)
-                {
-                    let data = {
-                        type: "doAction",
-                        actionType: "attack",
-                        id: ent.id,
-                        targetId: h.id
-                    };
-                    ent.targetId = h.id;
-                    ws.send(JSON.stringify(data));
-                }
-            }
-        }
     },
     //if the client recieves info saying an entity is destroyed they will get rid of it from the list of entities they know about
     destroyEntity: function(data)
@@ -702,6 +684,29 @@ function draw()
     fill(0,0,255,100)
     var messageText = "resources: " + resources + " zoom: " + cam.scaleLevel;
     drawContrastedText(messageText, 20, 20);
+    for(let j = 0; j < friendlyEntityList.length; j++)
+    {
+        let ent = friendlyEntityList[j];
+        if(ent.type=="fighter" && ent.targetId == -1)
+        {
+            for(let i = 0; i < entityList.length; i++)
+            {
+                let h = entityList[i];
+                if(h.type=="house" && !h.isFriendly)
+                {
+                    let data = {
+                        type: "doAction",
+                        actionType: "attack",
+                        id: ent.id,
+                        targetId: h.id
+                    };
+                    ent.targetId = h.id;
+                    ws.send(JSON.stringify(data));
+                }
+            }
+        }
+    }
+    
 }
 
 //find all friendly ents within a selection rectangle and add them to a list
