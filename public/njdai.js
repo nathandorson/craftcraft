@@ -430,7 +430,7 @@ var receivedActions = {
             ent.y = data.y;
             ent.z = data.z;
         }
-        if((ent.type=="house" || ent.type=="fighter" || ent.type=="worker") && !ent.isFriendly)
+        if(ent != null && (ent.type=="house" || ent.type=="fighter" || ent.type=="worker") && !ent.isFriendly)
         {
             for(let i = 0; i < friendlyEntityList.length; i++)
             {
@@ -448,6 +448,24 @@ var receivedActions = {
                 }
             }
         }
+        if(ent.isFriendly && ent.type=="fighter" && ent.targetId == -1)
+        {
+            for(let i = 0; i < entityList.length; i++)
+            {
+                let h = entityList[i];
+                if(h.type=="house" && !h.isFriendly)
+                {
+                    let data = {
+                        type: "doAction",
+                        actionType: "attack",
+                        id: ent.id,
+                        targetId: h.id
+                    };
+                    ent.targetId = h.id;
+                    ws.send(JSON.stringify(data));
+                }
+            }
+        }
     },
     //if the client recieves info saying an entity is destroyed they will get rid of it from the list of entities they know about
     destroyEntity: function(data)
@@ -459,14 +477,28 @@ var receivedActions = {
             if(ent.targetId == id)
             {
                 ent.targetId = -1;
-                data = {
+                let action = {
                     type: "doAction",
                     actionType: "move",
                     id: ent.id,
                     x: baseY,
                     y: baseX
                 };
-                ws.send(JSON.stringify(data));
+                for(let j = 0; j < entityList.length; j++)
+                {
+                    let h = entityList[j];
+                    if(h.type=="house"&&!h.isFriendly)
+                    {
+                        let action = {
+                            type: "doAction",
+                            actionType: "attack",
+                            id: ent.id,
+                            targetId: h.id
+                        };
+                        ent.targetId = h.id;
+                    }
+                }
+                ws.send(JSON.stringify(action));
             }
         }
         for(let i = 0; i < entityList.length; i++)
