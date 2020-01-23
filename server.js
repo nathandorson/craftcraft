@@ -318,9 +318,6 @@ class ConnectedClient
         //player.emitter.on("update", this.updateUnit);
         player.emitter.on("destroy", this.destroyUnit);
         player.emitter.on("resource", this.updateResources);
-        player.emitter.on("win", () => {
-            winCallback(this.name);
-        });
         this.sendWorld();
     }
     /**
@@ -355,9 +352,21 @@ module.exports = {
      * starts the server
      * @param {GameBoard} g a reference to the game world
      */
-    run: function(g, winCallback)
+    run: function(g, winCb)
     {
         game = g;
+        game.emitter.on("win", (player) => {
+            for(let i = 0; i < clientList.length; i++)
+            {
+                if(clientList[i].player == player)
+                {
+                    let client = clientList[i];
+                    winCallback(client.name);
+                    break;
+                }
+            }
+        });
+        winCallback = winCb;
         clientList = [];
         wsServer = new WebSocket.Server({ port: port }, () => { console.log("game server running on port " + port); });
         wsServer.on("connection", (socket, req) => {

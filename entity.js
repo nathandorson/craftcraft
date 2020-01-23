@@ -324,7 +324,7 @@ class Entity
             let win = otherPlayer.checkWin();
             if(win)
             {
-                this.emitter.emit("win");
+                this.game.emitter.emit("win", this.owner);
             }
         }
     }

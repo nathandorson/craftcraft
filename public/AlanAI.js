@@ -149,7 +149,8 @@ function connect(target)
     ws.onopen = function() {
         console.log("connected to " + target);
         ws.send(JSON.stringify({
-            type: "join"
+            type: "join",
+            name: "a's ai"
         }));
         connected = true;
     };

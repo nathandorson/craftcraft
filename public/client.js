@@ -523,7 +523,8 @@ function connect(target)
     ws.onopen = function() {
         console.log("connected to " + target);
         ws.send(JSON.stringify({
-            type: "join"
+            type: "join",
+            name: "player " + Math.floor(Math.random() * 10000)
         }));
         connected = true;
     };
