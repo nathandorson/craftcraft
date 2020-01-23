@@ -44,7 +44,7 @@ function main()
     gameWorld = new GameBoard();
     //start server
     server.run(gameWorld, (winnerName) => {
-        console.log(winnerName + " has won the game");
+        console.log(winnerName + " has lost the game");
         console.log("ending game loop");
         clearInterval(gameUpdateInterval);
     });

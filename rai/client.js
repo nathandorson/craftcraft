@@ -1,4 +1,4 @@
-//note: surface refers to off-screen graphics buffer
+//this AI made by Forrest
 /**
  * a surface for the terrain background
  */
